@@ -85,6 +85,9 @@ app.whenReady().then(() => {
   ipcMain.on(CH.SCROLL, (event, s) => {
     syncBus?.handleScroll(event.sender.id, s)
   })
+  ipcMain.on(CH.MIRROR, (event, ev) => {
+    syncBus?.handleMirror(event.sender.id, ev, mirrorEnabled)
+  })
   createWindow()
   app.on('activate', () => {
     if (BaseWindow.getAllWindows().length === 0) createWindow()

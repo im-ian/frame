@@ -1,4 +1,4 @@
-import type { ScrollState, ViewId } from '../../shared/types'
+import type { MirrorEvent, ScrollState, ViewId } from '../../shared/types'
 import type { ViewRegistry } from '../views/ViewRegistry'
 
 export class SyncBus {
@@ -20,6 +20,17 @@ export class SyncBus {
     for (const view of this.registry.list()) {
       if (view.id === originId) continue
       void view.applyScroll(s)
+    }
+  }
+
+  handleMirror(senderWcId: number, ev: MirrorEvent, mirrorOn: boolean): void {
+    if (!mirrorOn) return
+    const originId = this.wcIdToViewId.get(senderWcId)
+    if (!originId) return
+
+    for (const view of this.registry.list()) {
+      if (view.id === originId) continue
+      view.injectMirror(ev)
     }
   }
 }

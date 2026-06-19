@@ -1,7 +1,8 @@
-import { WebContentsView, type View, type WebContents } from 'electron'
+import { WebContentsView, type KeyboardInputEvent, type View, type WebContents } from 'electron'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
-import type { DevicePreset, Rect, ScrollState, ViewId } from '../../shared/types'
+import { fromFraction } from '../../shared/coords'
+import type { DevicePreset, MirrorEvent, Rect, ScrollState, ViewId } from '../../shared/types'
 import { getFrameSession } from '../session/partition'
 
 const VIEWPORT_PRELOAD = join(__dirname, '../preload/viewport.js')
@@ -101,6 +102,25 @@ export class ChromiumView {
         window.scrollTo(maxX * ${JSON.stringify(s.fx)}, maxY * ${JSON.stringify(s.fy)});
       })()`
     )
+  }
+
+  injectMirror(ev: MirrorEvent): void {
+    if (ev.kind === 'mouse') {
+      this.webContents.sendInputEvent({
+        type: ev.type,
+        x: fromFraction(ev.fx, this.width),
+        y: fromFraction(ev.fy, this.height),
+        button: ev.button,
+        clickCount: ev.clickCount
+      })
+      return
+    }
+
+    this.webContents.sendInputEvent({
+      type: ev.type,
+      keyCode: ev.keyCode,
+      modifiers: ev.modifiers
+    } as KeyboardInputEvent)
   }
 
   async applyPreset(preset: DevicePreset): Promise<void> {
