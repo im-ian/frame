@@ -3,7 +3,7 @@ import { Toolbar } from './components/Toolbar'
 import { ViewportCanvas } from './components/ViewportCanvas'
 
 function App(): React.JSX.Element {
-  const { views, addView, removeView } = useViews()
+  const { views, addView, removeView, reorderViews } = useViews()
   return (
     <div className="app">
       <Toolbar
@@ -11,7 +11,11 @@ function App(): React.JSX.Element {
         onAddView={(presetId) => void addView(presetId)}
         onToggleMirror={(on) => void window.frame.setMirror(on)}
       />
-      <ViewportCanvas views={views} onRemove={(id) => void removeView(id)} />
+      <ViewportCanvas
+        views={views}
+        onRemove={(id) => void removeView(id)}
+        onReorder={reorderViews}
+      />
     </div>
   )
 }

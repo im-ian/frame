@@ -1,16 +1,18 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import type { ViewState } from '../../../shared/types'
 import { DeviceFrame } from './DeviceFrame'
 
 interface Props {
   views: ViewState[]
   onRemove: (id: string) => void
+  onReorder: (sourceId: string, targetId: string) => void
 }
 
-export function ViewportCanvas({ views, onRemove }: Props): React.JSX.Element {
+export function ViewportCanvas({ views, onRemove, onReorder }: Props): React.JSX.Element {
   const slotRefs = useRef(new Map<string, HTMLDivElement>())
   const frameRef = useRef<number | null>(null)
   const canvasRef = useRef<HTMLElement>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
 
   const reportLayout = useCallback(() => {
     if (frameRef.current != null) return
@@ -59,6 +61,17 @@ export function ViewportCanvas({ views, onRemove }: Props): React.JSX.Element {
     }
   }, [reportLayout])
 
+  useEffect(() => {
+    if (!draggingId) return
+    const stopDragging = (): void => setDraggingId(null)
+    window.addEventListener('pointerup', stopDragging)
+    window.addEventListener('pointercancel', stopDragging)
+    return () => {
+      window.removeEventListener('pointerup', stopDragging)
+      window.removeEventListener('pointercancel', stopDragging)
+    }
+  }, [draggingId])
+
   return (
     <section className="canvas" data-testid="canvas" ref={canvasRef}>
       {views.length === 0 && (
@@ -72,6 +85,13 @@ export function ViewportCanvas({ views, onRemove }: Props): React.JSX.Element {
           key={v.id}
           view={v}
           onRemove={onRemove}
+          dragging={draggingId === v.id}
+          onDragStart={(id) => setDraggingId(id)}
+          onDragEnd={() => setDraggingId(null)}
+          onDragEnterFrame={(targetId) => {
+            if (!draggingId) return
+            onReorder(draggingId, targetId)
+          }}
           ref={(el) => {
             if (el) slotRefs.current.set(v.id, el)
             else slotRefs.current.delete(v.id)

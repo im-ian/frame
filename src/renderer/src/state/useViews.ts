@@ -5,6 +5,7 @@ export function useViews(): {
   views: ViewState[]
   addView: (presetId: string) => Promise<void>
   removeView: (id: string) => Promise<void>
+  reorderViews: (sourceId: string, targetId: string) => void
   refresh: () => Promise<void>
 } {
   const [views, setViews] = useState<ViewState[]>([])
@@ -19,6 +20,20 @@ export function useViews(): {
 
   const removeView = useCallback(async (id: string) => {
     setViews(await window.frame.removeView(id))
+  }, [])
+
+  const reorderViews = useCallback((sourceId: string, targetId: string) => {
+    if (sourceId === targetId) return
+    setViews((current) => {
+      const sourceIndex = current.findIndex((view) => view.id === sourceId)
+      const targetIndex = current.findIndex((view) => view.id === targetId)
+      if (sourceIndex === -1 || targetIndex === -1) return current
+
+      const next = [...current]
+      const [source] = next.splice(sourceIndex, 1)
+      next.splice(targetIndex, 0, source)
+      return next
+    })
   }, [])
 
   useEffect(() => {
@@ -37,5 +52,5 @@ export function useViews(): {
     }
   }, [])
 
-  return { views, addView, removeView, refresh }
+  return { views, addView, removeView, reorderViews, refresh }
 }

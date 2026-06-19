@@ -249,6 +249,8 @@ body {
 .canvas {
   flex: 1 1 auto;
   display: flex;
+  justify-content: flex-start;
+  align-content: flex-start;
   gap: 32px;
   overflow: auto;
   padding: 36px;
@@ -283,10 +285,10 @@ body {
 }
 
 .canvas__empty {
-  margin: auto;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   color: var(--text-3);
   user-select: none;
@@ -310,6 +312,10 @@ body {
   box-shadow: var(--shadow-frame);
 }
 
+.device-frame--dragging {
+  opacity: 0.62;
+}
+
 .device-frame__bar {
   display: flex;
   align-items: center;
@@ -318,6 +324,11 @@ body {
   padding: 0 10px 0 14px;
   background: var(--surface-3);
   border-bottom: 1px solid var(--border);
+  cursor: grab;
+}
+
+.device-frame__bar:active {
+  cursor: grabbing;
 }
 
 .device-frame__name {
@@ -334,7 +345,6 @@ body {
 }
 
 .device-frame__close {
-  margin-left: auto;
   width: 22px;
   height: 22px;
   display: inline-flex;
@@ -348,14 +358,17 @@ body {
   line-height: 1;
   cursor: pointer;
   opacity: 0;
+  pointer-events: none;
   transition:
     opacity 140ms ease,
     background 140ms ease,
     color 140ms ease;
 }
 
-.device-frame:hover .device-frame__close {
+.device-frame:hover .device-frame__close,
+.device-frame__close:focus-visible {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .device-frame__close:hover {
