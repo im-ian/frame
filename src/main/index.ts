@@ -34,14 +34,6 @@ function createWindow(): void {
 
   registry = new ViewRegistry(win.contentView)
 
-  registerIpcHandlers(
-    registry,
-    () => mirrorEnabled,
-    (v) => {
-      mirrorEnabled = v
-    }
-  )
-
   win.on('closed', () => {
     registry?.destroyAll()
     uiView?.webContents.close()
@@ -52,6 +44,13 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  registerIpcHandlers(
+    () => registry,
+    () => mirrorEnabled,
+    (v) => {
+      mirrorEnabled = v
+    }
+  )
   createWindow()
   app.on('activate', () => {
     if (BaseWindow.getAllWindows().length === 0) createWindow()

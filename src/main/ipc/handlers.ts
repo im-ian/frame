@@ -5,11 +5,13 @@ import type { ViewRegistry } from '../views/ViewRegistry'
 import { CH } from './channels'
 
 export function registerIpcHandlers(
-  registry: ViewRegistry,
+  getRegistry: () => ViewRegistry | null,
   _getMirror: () => boolean,
   setMirror: (v: boolean) => void
 ): void {
   ipcMain.handle(CH.ADD_VIEW, async (_e, presetId: string) => {
+    const registry = getRegistry()
+    if (!registry) throw new Error('no active window')
     const preset = findPreset(presetId)
     if (!preset) throw new Error(`unknown preset: ${presetId}`)
     const view = registry.add(preset)
@@ -23,6 +25,8 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle(CH.ADD_CUSTOM_VIEW, async (_e, label: string, w: number, h: number) => {
+    const registry = getRegistry()
+    if (!registry) throw new Error('no active window')
     const preset = parseCustomPreset(label, w, h)
     const view = registry.add(preset)
     view.setBounds({ x: 0, y: 60, width: view.width, height: view.height })
@@ -32,18 +36,28 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle(CH.REMOVE_VIEW, (_e, id: ViewId) => {
+    const registry = getRegistry()
+    if (!registry) throw new Error('no active window')
     registry.remove(id)
     return registry.states()
   })
 
-  ipcMain.handle(CH.LIST_VIEWS, () => registry.states())
+  ipcMain.handle(CH.LIST_VIEWS, () => {
+    const registry = getRegistry()
+    if (!registry) throw new Error('no active window')
+    return registry.states()
+  })
 
   ipcMain.handle(CH.NAVIGATE_ALL, async (_e, url: string) => {
+    const registry = getRegistry()
+    if (!registry) throw new Error('no active window')
     await registry.navigateAll(url)
     return registry.states()
   })
 
   ipcMain.handle(CH.SET_LAYOUT, (_e, rects: Array<{ id: ViewId; rect: Rect }>) => {
+    const registry = getRegistry()
+    if (!registry) throw new Error('no active window')
     for (const { id, rect } of rects) registry.get(id)?.setBounds(rect)
   })
 
@@ -52,9 +66,13 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle(CH.SET_PRESET, async (_e, id: ViewId, presetId: string) => {
+    const registry = getRegistry()
+    if (!registry) throw new Error('no active window')
     const preset = findPreset(presetId)
     if (!preset) throw new Error(`unknown preset: ${presetId}`)
-    await registry.get(id)?.applyPreset(preset)
+    const view = registry.get(id)
+    if (!view) throw new Error(`unknown view id: ${id}`)
+    await view.applyPreset(preset)
     return registry.states()
   })
 }
