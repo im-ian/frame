@@ -10,6 +10,7 @@ interface Props {
 export function ViewportCanvas({ views, onRemove }: Props): React.JSX.Element {
   const slotRefs = useRef(new Map<string, HTMLDivElement>())
   const frameRef = useRef<number | null>(null)
+  const canvasRef = useRef<HTMLElement>(null)
 
   const reportLayout = useCallback(() => {
     if (frameRef.current != null) return
@@ -33,16 +34,20 @@ export function ViewportCanvas({ views, onRemove }: Props): React.JSX.Element {
   useEffect(() => {
     reportLayout()
     window.addEventListener('resize', reportLayout)
-    const canvas = document.querySelector('[data-testid=canvas]')
+    const canvas = canvasRef.current
     canvas?.addEventListener('scroll', reportLayout)
     return () => {
       window.removeEventListener('resize', reportLayout)
       canvas?.removeEventListener('scroll', reportLayout)
+      if (frameRef.current != null) {
+        cancelAnimationFrame(frameRef.current)
+        frameRef.current = null
+      }
     }
   }, [reportLayout])
 
   return (
-    <section className="canvas" data-testid="canvas">
+    <section className="canvas" data-testid="canvas" ref={canvasRef}>
       {views.map((v) => (
         <DeviceFrame
           key={v.id}
