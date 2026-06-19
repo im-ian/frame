@@ -9,7 +9,7 @@ interface Props {
 
 export function Toolbar({ onNavigate, onAddView, onToggleMirror }: Props): React.JSX.Element {
   const [url, setUrl] = useState('https://example.com')
-  const [presetId, setPresetId] = useState(DEFAULT_PRESETS[0].id)
+  const [presetId, setPresetId] = useState(() => DEFAULT_PRESETS[0]?.id ?? '')
   const [mirror, setMirror] = useState(false)
 
   return (

@@ -20,6 +20,8 @@ test('toolbar controls are present', async () => {
   await expect(window.getByTestId('url-input')).toBeVisible()
   await expect(window.getByTestId('add-view')).toBeVisible()
   await expect(window.getByTestId('mirror-toggle')).toBeVisible()
+  await expect(window.getByTestId('go')).toBeVisible()
+  await expect(window.getByTestId('preset-select')).toBeVisible()
 })
 
 test('adding a view renders a device frame', async () => {
