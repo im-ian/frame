@@ -35,10 +35,23 @@ export function ViewportCanvas({ views, onRemove }: Props): React.JSX.Element {
     reportLayout()
     window.addEventListener('resize', reportLayout)
     const canvas = canvasRef.current
+
+    // Translate vertical wheel into horizontal panning so a plain mouse wheel
+    // can move across viewports (native views capture the wheel over
+    // themselves, so this fires over the canvas chrome/gaps).
+    const onWheel = (e: WheelEvent): void => {
+      if (!canvas) return
+      if (e.deltaX === 0 && e.deltaY !== 0) {
+        canvas.scrollLeft += e.deltaY
+        e.preventDefault()
+      }
+    }
     canvas?.addEventListener('scroll', reportLayout)
+    canvas?.addEventListener('wheel', onWheel, { passive: false })
     return () => {
       window.removeEventListener('resize', reportLayout)
       canvas?.removeEventListener('scroll', reportLayout)
+      canvas?.removeEventListener('wheel', onWheel)
       if (frameRef.current != null) {
         cancelAnimationFrame(frameRef.current)
         frameRef.current = null
