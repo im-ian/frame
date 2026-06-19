@@ -2,9 +2,14 @@ import { app, BaseWindow, WebContentsView } from 'electron'
 import { join } from 'path'
 import { ViewRegistry } from './views/ViewRegistry'
 import { registerIpcHandlers } from './ipc/handlers'
+import { findPreset } from '../shared/presets'
 
 // Ensure app name is always 'frame', regardless of launch context
 app.setName('frame')
+
+// Seed a useful default workspace so the app is immediately usable.
+const DEFAULT_VIEW_PRESETS = ['iphone-14', 'ipad', 'desktop-1440']
+const DEFAULT_URL = 'https://example.com'
 
 let win: BaseWindow | null = null
 let uiView: WebContentsView | null = null
@@ -12,9 +17,9 @@ let registry: ViewRegistry | null = null
 let mirrorEnabled = false
 
 function createWindow(): void {
-  win = new BaseWindow({ width: 1280, height: 800 })
+  win = new BaseWindow({ width: 1440, height: 900 })
 
-  // Main UI (toolbar + canvas) view
+  // Main UI (toolbar + canvas) view, kept sized to the window.
   uiView = new WebContentsView({
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -24,7 +29,14 @@ function createWindow(): void {
     }
   })
   win.contentView.addChildView(uiView)
-  uiView.setBounds({ x: 0, y: 0, width: 1280, height: 800 })
+
+  const syncUiBounds = (): void => {
+    if (!win || !uiView) return
+    const { width, height } = win.getContentBounds()
+    uiView.setBounds({ x: 0, y: 0, width, height })
+  }
+  syncUiBounds()
+  win.on('resize', syncUiBounds)
 
   if (process.env.ELECTRON_RENDERER_URL) {
     void uiView.webContents.loadURL(process.env.ELECTRON_RENDERER_URL)
@@ -33,6 +45,16 @@ function createWindow(): void {
   }
 
   registry = new ViewRegistry(win.contentView)
+
+  // Seed default viewports + open a starter page so the window isn't empty.
+  // Skipped under test so E2E specs start from a clean, empty workspace.
+  if (process.env.NODE_ENV !== 'test') {
+    for (const id of DEFAULT_VIEW_PRESETS) {
+      const preset = findPreset(id)
+      if (preset) registry.add(preset)
+    }
+    void registry.navigateAll(DEFAULT_URL)
+  }
 
   win.on('closed', () => {
     registry?.destroyAll()
