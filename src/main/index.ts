@@ -1,77 +1,60 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, BaseWindow, WebContentsView, ipcMain } from 'electron'
 import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import { ChromiumView } from './views/ChromiumView'
+import { findPreset } from '../shared/presets'
 
 // Ensure app name is always 'frame', regardless of launch context
 app.setName('frame')
 
+let win: BaseWindow | null = null
+const testViews: ChromiumView[] = []
+
 function createWindow(): void {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
-    show: false,
-    autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+  win = new BaseWindow({ width: 1280, height: 800 })
+
+  // Main UI (toolbar + canvas) view
+  const ui = new WebContentsView({
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
-    }
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
   })
+  win.contentView.addChildView(ui)
+  ui.setBounds({ x: 0, y: 0, width: 1280, height: 800 })
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
-  })
-
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
-  })
-
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  if (process.env.ELECTRON_RENDERER_URL) {
+    void ui.webContents.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    void ui.webContents.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  win.on('closed', () => {
+    for (const v of testViews) v.destroy()
+    win = null
+  })
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+// Test-only hook (replaced/extended by formal handler in Task 7)
+ipcMain.handle('__createTestView', async (_e, presetId: string, url: string) => {
+  if (!win) throw new Error('no window')
+  const preset = findPreset(presetId)
+  if (!preset) throw new Error('unknown preset')
+  const view = new ChromiumView(win.contentView, preset)
+  view.setBounds({ x: 0, y: 60, width: preset.width, height: preset.height })
+  await view.loadURL(url)
+  testViews.push(view)
+  return { id: view.id, currentUrl: view.webContents.getURL() }
+})
+
 app.whenReady().then(() => {
-  // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
-
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
-  })
-
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
-
   createWindow()
-
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  app.on('activate', () => {
+    if (BaseWindow.getAllWindows().length === 0) createWindow()
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
+  if (process.platform !== 'darwin') app.quit()
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
