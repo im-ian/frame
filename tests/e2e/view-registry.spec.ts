@@ -1,5 +1,6 @@
 import { test, expect, _electron as electron } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
+import type { ViewState } from '../../src/shared/types'
 import path from 'node:path'
 
 let app: ElectronApplication
@@ -21,7 +22,7 @@ test('registry adds views and lists their states', async () => {
   await window.evaluate(() => window.frame.addView('iphone-14'))
   const states = await window.evaluate(() => window.frame.listViews())
   expect(states.length).toBe(2)
-  expect(states.map((s: any) => s.presetId)).toEqual(['desktop-1440', 'iphone-14'])
+  expect(states.map((s: ViewState) => s.presetId)).toEqual(['desktop-1440', 'iphone-14'])
 })
 
 test('registry removes a view and closes its webContents', async () => {

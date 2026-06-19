@@ -22,16 +22,20 @@ export function useViews(): {
   }, [])
 
   useEffect(() => {
-    void refresh()
+    let active = true
+    void window.frame.listViews().then((states) => {
+      if (active) setViews(states)
+    })
     const offViewsChanged = window.frame.onViewsChanged(setViews)
     const offNavigated = window.frame.onViewNavigated(({ id, url }) => {
       setViews((current) => current.map((view) => (view.id === id ? { ...view, url } : view)))
     })
     return () => {
+      active = false
       offViewsChanged()
       offNavigated()
     }
-  }, [refresh])
+  }, [])
 
   return { views, addView, removeView, refresh }
 }

@@ -1,5 +1,6 @@
 import { test, expect, _electron as electron } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
+import type { WebContentsView } from 'electron'
 import path from 'node:path'
 
 let app: ElectronApplication
@@ -38,7 +39,7 @@ test('native view bounds follow the measured slot rect', async () => {
     .poll(async () =>
       app.evaluate(async ({ BaseWindow }) => {
         const w = BaseWindow.getAllWindows()[0]
-        const last = w.contentView.children[w.contentView.children.length - 1] as any
+        const last = w.contentView.children[w.contentView.children.length - 1] as WebContentsView
         const b = last.getBounds()
         return { x: b.x, y: b.y, w: b.width, h: b.height }
       })

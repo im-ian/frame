@@ -10,9 +10,7 @@ export function startFixture(): Promise<{ server: Server; url: string }> {
       }
 
       const cookie = req.headers.cookie ?? ''
-      res.end(
-        `<title>${cookie.includes('frame_session=yes') ? 'HAS_COOKIE' : 'NO_COOKIE'}</title>`
-      )
+      res.end(`<title>${cookie.includes('frame_session=yes') ? 'HAS_COOKIE' : 'NO_COOKIE'}</title>`)
     })
 
     server.listen(0, '127.0.0.1', () => {

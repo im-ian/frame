@@ -1,6 +1,7 @@
 import { test, expect, _electron as electron } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
 import type { Server } from 'node:http'
+import type { WebContentsView } from 'electron'
 import path from 'node:path'
 import { startFixture } from './fixtures/server'
 
@@ -20,7 +21,9 @@ test.beforeAll(async () => {
   })
   window = await app.firstWindow()
   await app.evaluate(async ({ session }) => {
-    await session.fromPartition('persist:frame').clearData({ dataTypes: ['cookies', 'localStorage'] })
+    await session
+      .fromPartition('persist:frame')
+      .clearData({ dataTypes: ['cookies', 'localStorage'] })
   })
 })
 
@@ -54,7 +57,7 @@ test('a cookie set in one view is visible to a newly added view', async () => {
     .poll(async () =>
       app.evaluate(async ({ BaseWindow }) => {
         const w = BaseWindow.getAllWindows()[0]
-        const last: any = w.contentView.children[w.contentView.children.length - 1]
+        const last = w.contentView.children[w.contentView.children.length - 1] as WebContentsView
         return last.webContents.getTitle()
       })
     )

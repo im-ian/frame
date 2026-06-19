@@ -1,5 +1,6 @@
 import { test, expect, _electron as electron } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
+import type { WebContentsView } from 'electron'
 import path from 'node:path'
 
 let app: ElectronApplication
@@ -29,7 +30,7 @@ test.afterAll(async () => {
 test('scrolling the focused view scrolls the others', async () => {
   await app.evaluate(async ({ BaseWindow }) => {
     const w = BaseWindow.getAllWindows()[0]
-    const first: any = w.contentView.children[1]
+    const first = w.contentView.children[1] as WebContentsView
     first.webContents.focus()
     await first.webContents.executeJavaScript(`
       window.scrollTo(0, 2000);
@@ -41,7 +42,7 @@ test('scrolling the focused view scrolls the others', async () => {
     .poll(async () =>
       app.evaluate(async ({ BaseWindow }) => {
         const w = BaseWindow.getAllWindows()[0]
-        const second: any = w.contentView.children[2]
+        const second = w.contentView.children[2] as WebContentsView
         return second.webContents.executeJavaScript('Math.round(window.scrollY)')
       })
     )

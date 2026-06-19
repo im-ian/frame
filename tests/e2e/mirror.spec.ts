@@ -1,5 +1,6 @@
 import { test, expect, _electron as electron } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
+import type { WebContentsView } from 'electron'
 import path from 'node:path'
 
 let app: ElectronApplication
@@ -28,7 +29,9 @@ test.beforeAll(async () => {
     .poll(async () =>
       app.evaluate(async ({ BaseWindow }) => {
         const w = BaseWindow.getAllWindows()[0]
-        return w.contentView.children.slice(1).map((child: any) => child.webContents.getTitle())
+        return (w.contentView.children.slice(1) as WebContentsView[]).map((child) =>
+          child.webContents.getTitle()
+        )
       })
     )
     .toEqual(['ready', 'ready'])
@@ -41,7 +44,7 @@ test.afterAll(async () => {
 test('a click in the focused view is mirrored to the other view', async () => {
   await app.evaluate(async ({ BaseWindow }) => {
     const w = BaseWindow.getAllWindows()[0]
-    const first: any = w.contentView.children[1]
+    const first = w.contentView.children[1] as WebContentsView
     first.webContents.focus()
     first.webContents.sendInputEvent({
       type: 'mouseDown',
@@ -63,7 +66,7 @@ test('a click in the focused view is mirrored to the other view', async () => {
     .poll(async () =>
       app.evaluate(async ({ BaseWindow }) => {
         const w = BaseWindow.getAllWindows()[0]
-        const second: any = w.contentView.children[2]
+        const second = w.contentView.children[2] as WebContentsView
         return second.webContents.getTitle()
       })
     )

@@ -17,7 +17,7 @@ test.afterAll(async () => {
 })
 
 test('window.frame bridge is exposed', async () => {
-  const keys = await window.evaluate(() => Object.keys((window as any).frame ?? {}))
+  const keys = await window.evaluate(() => Object.keys(window.frame ?? {}))
   expect(keys).toEqual(
     expect.arrayContaining(['addView', 'removeView', 'navigateAll', 'setLayout', 'setMirror'])
   )

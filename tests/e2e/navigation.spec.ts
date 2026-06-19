@@ -1,5 +1,6 @@
 import { test, expect, _electron as electron } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
+import type { WebContentsView } from 'electron'
 import path from 'node:path'
 
 let app: ElectronApplication
@@ -31,7 +32,9 @@ test('navigateAll loads the same URL into every view', async () => {
     .poll(async () =>
       app.evaluate(async ({ BaseWindow }) => {
         const w = BaseWindow.getAllWindows()[0]
-        return w.contentView.children.slice(1).map((c: any) => c.webContents.getURL())
+        return (w.contentView.children.slice(1) as WebContentsView[]).map((c) =>
+          c.webContents.getURL()
+        )
       })
     )
     .toEqual([target, target])

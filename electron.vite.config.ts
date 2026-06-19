@@ -10,13 +10,13 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/preload/index.ts'),
-          viewport: resolve(__dirname, 'src/preload/viewport.ts'),
-        },
-      },
-    },
+          viewport: resolve(__dirname, 'src/preload/viewport.ts')
+        }
+      }
+    }
   },
   renderer: {
     resolve: { alias: { '@renderer': resolve('src/renderer/src') } },
-    plugins: [react()],
-  },
+    plugins: [react()]
+  }
 })
