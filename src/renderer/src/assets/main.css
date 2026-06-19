@@ -10,6 +10,20 @@ body {
   user-select: none;
 }
 
+.toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+}
+
+.canvas {
+  display: flex;
+  gap: 24px;
+  overflow: auto;
+  padding: 24px;
+  align-items: flex-start;
+}
+
 code {
   font-weight: 600;
   padding: 3px 5px;

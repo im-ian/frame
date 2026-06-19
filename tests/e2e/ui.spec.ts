@@ -12,16 +12,18 @@ test.beforeAll(async () => {
   })
   window = await app.firstWindow()
 })
-
 test.afterAll(async () => {
   await app.close()
 })
 
-test('renderer boots with toolbar', async () => {
+test('toolbar controls are present', async () => {
   await expect(window.getByTestId('url-input')).toBeVisible()
+  await expect(window.getByTestId('add-view')).toBeVisible()
+  await expect(window.getByTestId('mirror-toggle')).toBeVisible()
 })
 
-test('app name is frame', async () => {
-  const name = await app.evaluate(async ({ app }) => app.getName())
-  expect(name).toBe('frame')
+test('adding a view renders a device frame', async () => {
+  await window.getByTestId('preset-select').selectOption('iphone-14')
+  await window.getByTestId('add-view').click()
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
 })
