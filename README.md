@@ -1,6 +1,6 @@
-# tmp-scaffold
+# frame
 
-An Electron application with React and TypeScript
+여러 디바이스 뷰포트를 한 창에서 동시에 보는 하이브리드 엔진 브라우저.
 
 ## Recommended IDE Setup
 

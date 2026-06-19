@@ -1,4 +1,4 @@
-appId: com.electron.frame
+appId: co.kr.jthefloor.frame
 productName: frame
 directories:
   buildResources: build
