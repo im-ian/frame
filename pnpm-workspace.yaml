@@ -1,0 +1,7 @@
+# pnpm build-script approval (pnpm 11 reads `allowBuilds` here, not package.json).
+# electron's postinstall downloads the binary; without approval pnpm skips it
+# and electron-vite fails with "Electron uninstall".
+allowBuilds:
+  electron: true
+  electron-winstaller: true
+  esbuild: true
