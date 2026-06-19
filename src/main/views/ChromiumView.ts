@@ -15,6 +15,7 @@ export class ChromiumView {
   private attached = false
   private currentUrl = ''
   private currentPreset: DevicePreset
+  private onNavigatedCb: ((url: string) => void) | null = null
 
   constructor(parent: View, preset: DevicePreset) {
     this.parent = parent
@@ -40,6 +41,13 @@ export class ChromiumView {
         void this.applyPreset(preset).then(resolve, resolve)
       })
     })
+
+    const emitNavigated = (): void => {
+      this.currentUrl = this.webContents.getURL()
+      this.onNavigatedCb?.(this.currentUrl)
+    }
+    this.webContents.on('did-navigate', emitNavigated)
+    this.webContents.on('did-navigate-in-page', emitNavigated)
   }
 
   get presetId(): string {
@@ -60,6 +68,10 @@ export class ChromiumView {
 
   get webContents(): WebContents {
     return this.view.webContents
+  }
+
+  onNavigated(cb: (url: string) => void): void {
+    this.onNavigatedCb = cb
   }
 
   setBounds(rect: Rect): void {

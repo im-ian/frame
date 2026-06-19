@@ -5,13 +5,19 @@ import { ChromiumView } from './ChromiumView'
 export class ViewRegistry {
   private readonly parent: View
   private readonly views = new Map<ViewId, ChromiumView>()
+  private onViewNavigated: ((id: ViewId, url: string) => void) | null = null
 
   constructor(parent: View) {
     this.parent = parent
   }
 
+  setNavigationListener(cb: (id: ViewId, url: string) => void): void {
+    this.onViewNavigated = cb
+  }
+
   add(preset: DevicePreset): ChromiumView {
     const view = new ChromiumView(this.parent, preset)
+    view.onNavigated((url) => this.onViewNavigated?.(view.id, url))
     this.views.set(view.id, view)
     return view
   }

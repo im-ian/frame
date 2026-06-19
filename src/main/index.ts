@@ -2,6 +2,7 @@ import { app, BaseWindow, WebContentsView } from 'electron'
 import { join } from 'path'
 import { ViewRegistry } from './views/ViewRegistry'
 import { registerIpcHandlers } from './ipc/handlers'
+import { CH } from './ipc/channels'
 import { findPreset } from '../shared/presets'
 
 // Ensure app name is always 'frame', regardless of launch context
@@ -45,6 +46,9 @@ function createWindow(): void {
   }
 
   registry = new ViewRegistry(win.contentView)
+  registry.setNavigationListener((id, url) => {
+    uiView?.webContents.send(CH.VIEW_NAVIGATED, { id, url })
+  })
 
   // Seed default viewports + open a starter page so the window isn't empty.
   // Skipped under test so E2E specs start from a clean, empty workspace.

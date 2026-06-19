@@ -23,7 +23,14 @@ export function useViews(): {
 
   useEffect(() => {
     void refresh()
-    return window.frame.onViewsChanged(setViews)
+    const offViewsChanged = window.frame.onViewsChanged(setViews)
+    const offNavigated = window.frame.onViewNavigated(({ id, url }) => {
+      setViews((current) => current.map((view) => (view.id === id ? { ...view, url } : view)))
+    })
+    return () => {
+      offViewsChanged()
+      offNavigated()
+    }
   }, [refresh])
 
   return { views, addView, removeView, refresh }
