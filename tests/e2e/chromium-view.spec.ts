@@ -18,7 +18,7 @@ test.afterAll(async () => {
 })
 
 test('creates a Chromium viewport as a child view', async () => {
-  await window.evaluate(() => (window as any).frameTest.addView('iphone-14'))
+  await window.evaluate(() => window.frame.addView('iphone-14'))
   const childCount = await app.evaluate(async ({ BaseWindow }) => {
     const w = BaseWindow.getAllWindows()[0]
     return w.contentView.children.length

@@ -1,7 +1,7 @@
-import { app, BaseWindow, WebContentsView, ipcMain } from 'electron'
+import { app, BaseWindow, WebContentsView } from 'electron'
 import { join } from 'path'
-import { findPreset } from '../shared/presets'
 import { ViewRegistry } from './views/ViewRegistry'
+import { registerIpcHandlers } from './ipc/handlers'
 
 // Ensure app name is always 'frame', regardless of launch context
 app.setName('frame')
@@ -9,6 +9,7 @@ app.setName('frame')
 let win: BaseWindow | null = null
 let uiView: WebContentsView | null = null
 let registry: ViewRegistry | null = null
+let mirrorEnabled = false
 
 function createWindow(): void {
   win = new BaseWindow({ width: 1280, height: 800 })
@@ -33,6 +34,14 @@ function createWindow(): void {
 
   registry = new ViewRegistry(win.contentView)
 
+  registerIpcHandlers(
+    registry,
+    () => mirrorEnabled,
+    (v) => {
+      mirrorEnabled = v
+    }
+  )
+
   win.on('closed', () => {
     registry?.destroyAll()
     uiView?.webContents.close()
@@ -41,28 +50,6 @@ function createWindow(): void {
     registry = null
   })
 }
-
-ipcMain.handle('__addView', async (_e, presetId: string) => {
-  if (!registry) throw new Error('no registry')
-  const preset = findPreset(presetId)
-  if (!preset) throw new Error('unknown preset')
-  const v = registry.add(preset)
-  v.setBounds({ x: 0, y: 60, width: v.width, height: v.height })
-  // Load about:blank to give the webcontents a stable initial state and
-  // let Playwright settle its CDP attachment to the new WebContentsView
-  // before our applyPreset CDP session attaches, preventing conflicts.
-  await v.loadURL('about:blank')
-  // Now await applyPreset completion so emulation is applied before returning.
-  await v.ready
-  return registry.states()
-})
-
-ipcMain.handle('__removeView', (_e, id: string) => {
-  registry?.remove(id)
-  return registry?.states() ?? []
-})
-
-ipcMain.handle('__listViews', () => registry?.states() ?? [])
 
 app.whenReady().then(() => {
   createWindow()

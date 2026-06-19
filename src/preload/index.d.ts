@@ -1,8 +1,7 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
+import type { FrameApi } from './index'
 
 declare global {
   interface Window {
-    electron: ElectronAPI
-    api: unknown
+    frame: FrameApi
   }
 }

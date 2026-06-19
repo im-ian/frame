@@ -17,17 +17,17 @@ test.afterAll(async () => {
 })
 
 test('registry adds views and lists their states', async () => {
-  await window.evaluate(() => (window as any).frameTest.addView('desktop-1440'))
-  await window.evaluate(() => (window as any).frameTest.addView('iphone-14'))
-  const states = await window.evaluate(() => (window as any).frameTest.listViews())
+  await window.evaluate(() => window.frame.addView('desktop-1440'))
+  await window.evaluate(() => window.frame.addView('iphone-14'))
+  const states = await window.evaluate(() => window.frame.listViews())
   expect(states.length).toBe(2)
   expect(states.map((s: any) => s.presetId)).toEqual(['desktop-1440', 'iphone-14'])
 })
 
 test('registry removes a view and closes its webContents', async () => {
-  const states = await window.evaluate(() => (window as any).frameTest.listViews())
-  await window.evaluate((id: string) => (window as any).frameTest.removeView(id), states[0].id)
-  const after = await window.evaluate(() => (window as any).frameTest.listViews())
+  const states = await window.evaluate(() => window.frame.listViews())
+  await window.evaluate((id: string) => window.frame.removeView(id), states[0].id)
+  const after = await window.evaluate(() => window.frame.listViews())
   expect(after.length).toBe(1)
   expect(after[0].presetId).toBe('iphone-14')
 })
