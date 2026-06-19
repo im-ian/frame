@@ -8,9 +8,33 @@ const DESKTOP_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 
 export const DEFAULT_PRESETS: DevicePreset[] = [
-  { id: 'desktop-1440', label: 'Desktop 1440', width: 1440, height: 900, dpr: 1, mobile: false, userAgent: DESKTOP_UA },
-  { id: 'ipad', label: 'iPad', width: 768, height: 1024, dpr: 2, mobile: true, userAgent: SAFARI_IPAD_UA },
-  { id: 'iphone-14', label: 'iPhone 14', width: 390, height: 844, dpr: 3, mobile: true, userAgent: SAFARI_IPHONE_UA },
+  {
+    id: 'desktop-1440',
+    label: 'Desktop 1440',
+    width: 1440,
+    height: 900,
+    dpr: 1,
+    mobile: false,
+    userAgent: DESKTOP_UA
+  },
+  {
+    id: 'ipad',
+    label: 'iPad',
+    width: 768,
+    height: 1024,
+    dpr: 2,
+    mobile: true,
+    userAgent: SAFARI_IPAD_UA
+  },
+  {
+    id: 'iphone-14',
+    label: 'iPhone 14',
+    width: 390,
+    height: 844,
+    dpr: 3,
+    mobile: true,
+    userAgent: SAFARI_IPHONE_UA
+  }
 ]
 
 export function findPreset(id: string): DevicePreset | undefined {
@@ -31,6 +55,6 @@ export function parseCustomPreset(label: string, width: number, height: number):
     height,
     dpr: 1,
     mobile: false,
-    userAgent: DESKTOP_UA,
+    userAgent: DESKTOP_UA
   }
 }

@@ -8,7 +8,7 @@ let window: Page
 test.beforeAll(async () => {
   app = await electron.launch({
     args: [path.join(__dirname, '..', '..', 'out', 'main', 'index.js')],
-    env: { ...process.env, NODE_ENV: 'test' },
+    env: { ...process.env, NODE_ENV: 'test' }
   })
   window = await app.firstWindow()
 })
@@ -20,7 +20,7 @@ test.afterAll(async () => {
 test('creates a Chromium viewport that loads a URL', async () => {
   const result = await window.evaluate(
     (args) => (window as any).frameTest.createTestView(args.presetId, args.url),
-    { presetId: 'iphone-14', url: 'data:text/html,<title>vp</title><h1>hello</h1>' },
+    { presetId: 'iphone-14', url: 'data:text/html,<title>vp</title><h1>hello</h1>' }
   )
   expect(result.id).toBeTruthy()
   expect(result.currentUrl).toContain('data:text/html')

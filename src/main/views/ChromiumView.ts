@@ -20,8 +20,8 @@ export class ChromiumView {
         preload: VIEWPORT_PRELOAD,
         contextIsolation: true,
         nodeIntegration: false,
-        sandbox: false,
-      },
+        sandbox: false
+      }
     })
     this.view.setBackgroundColor('#ffffffff')
     parent.addChildView(this.view)
@@ -29,7 +29,9 @@ export class ChromiumView {
     // Defer applyPreset to avoid CDP session conflicts when called during an
     // active ipcRenderer.invoke (Playwright evaluate). setImmediate lets the
     // current event-loop tick finish before attaching the CDP debugger.
-    setImmediate(() => { void this.applyPreset(preset) })
+    setImmediate(() => {
+      void this.applyPreset(preset)
+    })
   }
 
   get webContents(): WebContents {
@@ -41,7 +43,7 @@ export class ChromiumView {
       x: Math.round(rect.x),
       y: Math.round(rect.y),
       width: Math.round(rect.width),
-      height: Math.round(rect.height),
+      height: Math.round(rect.height)
     })
   }
 
@@ -65,15 +67,15 @@ export class ChromiumView {
         height: preset.height,
         deviceScaleFactor: preset.dpr,
         mobile: preset.mobile,
-        screenOrientation: { type: 'portraitPrimary', angle: 0 },
+        screenOrientation: { type: 'portraitPrimary', angle: 0 }
       })
       await dbg.sendCommand('Emulation.setTouchEmulationEnabled', {
         enabled: preset.mobile,
-        maxTouchPoints: preset.mobile ? 5 : 0,
+        maxTouchPoints: preset.mobile ? 5 : 0
       })
       await dbg.sendCommand('Emulation.setUserAgentOverride', {
         userAgent: preset.userAgent,
-        platform: preset.mobile ? 'iPhone' : 'MacIntel',
+        platform: preset.mobile ? 'iPhone' : 'MacIntel'
       })
     } catch (err) {
       console.error('applyPreset emulation failed', err)

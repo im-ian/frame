@@ -12,7 +12,7 @@ export function buttonName(button: number): 'left' | 'middle' | 'right' {
 export function makeMouseMirror(
   type: 'mouseDown' | 'mouseUp',
   e: { button: number; clientX: number; clientY: number; detail: number },
-  viewport: { width: number; height: number },
+  viewport: { width: number; height: number }
 ): Extract<MirrorEvent, { kind: 'mouse' }> {
   return {
     kind: 'mouse',
@@ -20,13 +20,13 @@ export function makeMouseMirror(
     button: buttonName(e.button),
     fx: toFraction(e.clientX, viewport.width),
     fy: toFraction(e.clientY, viewport.height),
-    clickCount: e.detail > 0 ? e.detail : 1,
+    clickCount: e.detail > 0 ? e.detail : 1
   }
 }
 
 export function makeKeyMirror(
   type: 'keyDown' | 'keyUp' | 'char',
-  e: { code: string; shiftKey: boolean; ctrlKey: boolean; altKey: boolean; metaKey: boolean },
+  e: { code: string; shiftKey: boolean; ctrlKey: boolean; altKey: boolean; metaKey: boolean }
 ): Extract<MirrorEvent, { kind: 'key' }> {
   const modifiers: Modifier[] = []
   if (e.shiftKey) modifiers.push('shift')

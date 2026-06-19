@@ -5,8 +5,8 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: { name: 'logic', environment: 'node', include: ['src/**/*.test.ts'] },
-      },
-    ],
-  },
+        test: { name: 'logic', environment: 'node', include: ['src/**/*.test.ts'] }
+      }
+    ]
+  }
 })

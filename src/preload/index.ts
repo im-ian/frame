@@ -13,7 +13,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('frameTest', {
       createTestView: (presetId: string, url: string) =>
-        ipcRenderer.invoke('__createTestView', presetId, url),
+        ipcRenderer.invoke('__createTestView', presetId, url)
     })
   } catch (error) {
     console.error(error)

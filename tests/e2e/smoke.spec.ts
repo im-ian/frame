@@ -8,7 +8,7 @@ let window: Page
 test.beforeAll(async () => {
   app = await electron.launch({
     args: [path.join(__dirname, '..', '..', 'out', 'main', 'index.js')],
-    env: { ...process.env, NODE_ENV: 'test' },
+    env: { ...process.env, NODE_ENV: 'test' }
   })
   window = await app.firstWindow()
 })

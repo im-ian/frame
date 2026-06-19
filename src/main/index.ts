@@ -19,8 +19,8 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
-    },
+      sandbox: false
+    }
   })
   win.contentView.addChildView(uiView)
   uiView.setBounds({ x: 0, y: 0, width: 1280, height: 800 })
