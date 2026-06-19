@@ -1,5 +1,27 @@
 @import './base.css';
 
+:root {
+  --bg: #0c0c0f;
+  --surface-1: #141418;
+  --surface-2: #1a1a20;
+  --surface-3: #232329;
+  --border: #2a2a32;
+  --border-strong: #3a3a44;
+  --text-1: #ededf2;
+  --text-2: #9a9aa6;
+  --text-3: #6b6b76;
+  --accent: #7c6cf6;
+  --accent-hover: #9184f8;
+  --accent-soft: rgba(124, 108, 246, 0.16);
+  --danger: #f06c8a;
+  --dot: rgba(255, 255, 255, 0.045);
+  --radius: 9px;
+  --radius-lg: 14px;
+  --shadow-frame: 0 16px 48px rgba(0, 0, 0, 0.55);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -14,7 +36,10 @@ body,
 body {
   overflow: hidden;
   user-select: none;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font);
+  color: var(--text-1);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 .app {
@@ -23,99 +48,295 @@ body {
   height: 100vh;
 }
 
-/* Toolbar stays pinned at the top; only the canvas scrolls. */
+/* ---------- Toolbar ---------- */
 .toolbar {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--ev-c-gray-1, #2c2c30);
-  background: var(--ev-c-black-soft, #1b1b1f);
+  gap: 14px;
+  height: 52px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface-1), #101014);
 }
 
-.toolbar input[data-testid='url-input'] {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 7px 11px;
-  border-radius: 7px;
-  border: 1px solid var(--ev-c-gray-1, #34343a);
-  background: var(--ev-c-black, #111114);
-  color: var(--ev-c-text-1, #eaeaea);
-  font-size: 13px;
-}
-
-.toolbar button,
-.toolbar select {
-  flex: 0 0 auto;
-  padding: 7px 12px;
-  border-radius: 7px;
-  border: 1px solid var(--ev-c-gray-1, #34343a);
-  background: var(--ev-c-black-mute, #242429);
-  color: var(--ev-c-text-1, #eaeaea);
-  font-size: 13px;
-  cursor: pointer;
-  transition: border-color 150ms ease;
-}
-
-.toolbar button:hover,
-.toolbar select:hover {
-  border-color: #6988e6;
-}
-
-.toolbar label {
+.brand {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  color: var(--ev-c-text-2, #a8a8ad);
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+  padding-right: 4px;
 }
 
+.brand__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, var(--accent), #b9aef9);
+  box-shadow: 0 0 12px var(--accent-soft);
+}
+
+.urlbar {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 6px 0 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.urlbar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.urlbar__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-1);
+  font-size: 13px;
+  font-family: var(--font);
+}
+
+.urlbar__input::placeholder {
+  color: var(--text-3);
+}
+
+.urlbar__go {
+  flex: 0 0 auto;
+  height: 24px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.urlbar__go:hover {
+  background: var(--accent-hover);
+}
+
+.toolbar__actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 140ms ease;
+}
+
+.select:hover {
+  border-color: var(--border-strong);
+}
+
+.btn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.btn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+
+.btn--accent {
+  border-color: transparent;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+.btn--accent:hover {
+  background: rgba(124, 108, 246, 0.26);
+}
+
+/* ---------- Mirror switch ---------- */
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 6px;
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.switch__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switch__track {
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  transition: background 160ms ease;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+}
+
+.switch__thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-2);
+  transition:
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.switch__input:checked ~ .switch__track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.switch__input:checked ~ .switch__track .switch__thumb {
+  transform: translateX(14px);
+  background: #fff;
+}
+
+.switch__input:checked ~ .switch__text {
+  color: var(--text-1);
+}
+
+/* ---------- Canvas ---------- */
 .canvas {
   flex: 1 1 auto;
   display: flex;
-  gap: 28px;
+  gap: 32px;
   overflow: auto;
-  padding: 28px;
+  padding: 36px;
   align-items: flex-start;
-  background: var(--ev-c-black, #0e0e10);
+  background-color: var(--bg);
+  background-image: radial-gradient(circle, var(--dot) 1px, transparent 1px);
+  background-size: 22px 22px;
 }
 
+.canvas__empty {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-3);
+  user-select: none;
+}
+
+.canvas__empty strong {
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ---------- Device frame ---------- */
 .device-frame {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #ffffff;
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-frame);
 }
 
 .device-frame__bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 12px;
-  font-size: 12px;
+  gap: 10px;
+  height: 34px;
+  padding: 0 10px 0 14px;
+  background: var(--surface-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.device-frame__name {
+  font-size: 12.5px;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  color: #d6d6da;
-  background: #2a2a2e;
+  color: var(--text-1);
+  letter-spacing: -0.01em;
 }
 
-.device-frame__bar button {
+.device-frame__dims {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.device-frame__close {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
+  border-radius: 6px;
   background: transparent;
-  color: #9a9aa0;
-  cursor: pointer;
-  font-size: 14px;
+  color: var(--text-3);
+  font-size: 12px;
   line-height: 1;
-  padding: 2px 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
 }
 
-.device-frame__bar button:hover {
-  color: #ffffff;
+.device-frame:hover .device-frame__close {
+  opacity: 1;
+}
+
+.device-frame__close:hover {
+  background: rgba(240, 108, 138, 0.16);
+  color: var(--danger);
 }
 
 .device-frame__slot {

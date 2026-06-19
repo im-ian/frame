@@ -48,6 +48,12 @@ export function ViewportCanvas({ views, onRemove }: Props): React.JSX.Element {
 
   return (
     <section className="canvas" data-testid="canvas" ref={canvasRef}>
+      {views.length === 0 && (
+        <div className="canvas__empty">
+          <strong>No viewports yet</strong>
+          <span>Pick a device and hit “+ View” to start.</span>
+        </div>
+      )}
       {views.map((v) => (
         <DeviceFrame
           key={v.id}

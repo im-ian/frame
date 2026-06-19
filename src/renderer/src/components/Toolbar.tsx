@@ -14,42 +14,63 @@ export function Toolbar({ onNavigate, onAddView, onToggleMirror }: Props): React
 
   return (
     <header className="toolbar">
-      <input
-        data-testid="url-input"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') onNavigate(url)
-        }}
-      />
-      <button data-testid="go" onClick={() => onNavigate(url)}>
-        Go
-      </button>
-      <select
-        data-testid="preset-select"
-        value={presetId}
-        onChange={(e) => setPresetId(e.target.value)}
-      >
-        {DEFAULT_PRESETS.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.label}
-          </option>
-        ))}
-      </select>
-      <button data-testid="add-view" onClick={() => onAddView(presetId)}>
-        + View
-      </button>
-      <label data-testid="mirror-toggle">
+      <div className="brand">
+        <span className="brand__dot" />
+        frame
+      </div>
+
+      <div className="urlbar">
         <input
-          type="checkbox"
-          checked={mirror}
-          onChange={(e) => {
-            setMirror(e.target.checked)
-            onToggleMirror(e.target.checked)
+          className="urlbar__input"
+          data-testid="url-input"
+          value={url}
+          placeholder="Enter a URL"
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onNavigate(url)
           }}
         />
-        Mirror
-      </label>
+        <button className="urlbar__go" data-testid="go" onClick={() => onNavigate(url)}>
+          Go
+        </button>
+      </div>
+
+      <div className="toolbar__actions">
+        <select
+          className="select"
+          data-testid="preset-select"
+          value={presetId}
+          onChange={(e) => setPresetId(e.target.value)}
+        >
+          {DEFAULT_PRESETS.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+        <button
+          className="btn btn--accent"
+          data-testid="add-view"
+          onClick={() => onAddView(presetId)}
+        >
+          + View
+        </button>
+        <label className="switch" data-testid="mirror-toggle">
+          <input
+            className="switch__input"
+            type="checkbox"
+            checked={mirror}
+            onChange={(e) => {
+              setMirror(e.target.checked)
+              onToggleMirror(e.target.checked)
+            }}
+          />
+          <span className="switch__track" aria-hidden="true">
+            <span className="switch__thumb" />
+          </span>
+          <span className="switch__text">Mirror</span>
+        </label>
+      </div>
     </header>
   )
 }
