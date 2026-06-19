@@ -33,7 +33,7 @@
 ## 4. 기술 스택 / 접근법
 
 **셸: Electron**
-- Chromium 내장 → 기본 뷰는 네이티브 `webview`/`WebContentsView`로 지연 없이 완전 상호작용.
+- Chromium 내장 → 기본 뷰는 네이티브 `WebContentsView`(Electron 30+, `<webview>`/`BrowserView`는 deprecated)로 지연 없이 완전 상호작용.
 - Node.js 내장 → Playwright로 실제 엔진(WebKit/Firefox) 오케스트레이션.
 - macOS + Windows 단일 코드베이스.
 - **Tauri 기각 사유:** OS마다 시스템 웹뷰 엔진이 달라(Mac=WebKit, Win=WebView2) "기본 엔진"이 플랫폼별로 달라지고, Playwright용 Node 사이드카가 별도로 필요해진다. MVP에 마찰이 크다.
@@ -56,7 +56,7 @@ ViewController (인터페이스)
   captureState()           현재 URL/스크롤 등
   onNavigated(cb)          네비게이션 완료 콜백
    │
-   ├─ NativeChromiumView   Electron webview + device emulation (기본 뷰, 지연 0)
+   ├─ ChromiumView         Electron WebContentsView + CDP device emulation (기본 뷰, 지연 0)
    └─ PlaywrightView       chromium | webkit | firefox, screencast (실제 엔진 뷰)
 ```
 
@@ -69,7 +69,9 @@ ViewController (인터페이스)
 - **렌더러 프로세스**
   - 뷰포트 캔버스: 가로 스크롤되는 device frame 행 (Responsively식 레이아웃)
   - 툴바: URL바 · 디바이스 프리셋 드롭다운 · "뷰 추가" · 뷰별 엔진 셀렉터 · 미러링 ON/OFF 토글
-  - 각 뷰 카드: 네이티브 뷰는 webview 임베드, 실제 엔진 뷰는 screencast canvas
+  - 각 뷰 카드: HTML로 bezel/라벨만 그림. 실제 웹 콘텐츠는 네이티브 `WebContentsView`(기본 뷰) 또는 screencast canvas(실제 엔진 뷰)가 그 위에 떠 있음.
+
+**네이티브 레이아웃 현실 (중요):** `WebContentsView`는 CSS 흐름에 안 들어감 — 위치는 메인 프로세스가 `setBounds(rect)`로 픽셀 단위 직접 지정. 그래서 **렌더러가 각 뷰포트 rect를 계산(스크롤/리사이즈 반영) → IPC로 메인에 전달 → 메인이 `setBounds`**. 뷰 제거/창 종료 시 `webContents.close()` 수동 호출 필수(자동 GC 안 됨). 에뮬 뷰엔 DevTools를 띄우지 않음(webContents당 CDP 디버거 1개 제약).
 
 ### 모듈 경계 (high cohesion, low coupling)
 - `view/` — ViewController 인터페이스 + 두 구현체
@@ -139,7 +141,7 @@ URL바 입력
 
 - **좌표 매핑 정확도:** 뷰포트 크기가 크게 다르면 상대좌표 매핑이 어긋날 수 있다. Phase 1에서 실측 후 element 기반 매핑 보강 검토.
 - **screencast 성능:** 뷰 수가 많을 때 실제 엔진 뷰의 프레임률/CPU 부담. 비활성 뷰 프레임 throttle 필요할 수 있음.
-- **X-Frame-Options / CSP:** 일부 사이트는 임베드를 막는다. Electron 네이티브 뷰는 webview라 iframe 제약을 받지 않음(이게 데스크탑 앱인 이유). 헤더 스트립이 필요한 엣지 케이스는 Phase 1에서 확인.
+- **X-Frame-Options / CSP:** 일부 사이트는 임베드를 막는다. `WebContentsView`는 독립 최상위 web content라 iframe 제약을 받지 않음(이게 데스크탑 앱인 이유). 헤더 스트립이 필요한 엣지 케이스는 Phase 1에서 확인.
 - **Playwright 번들 크기:** 엔진 바이너리 동봉 시 패키지 용량 증가. 최초 실행 시 다운로드 vs 동봉 결정 (Phase 2).
 
 ## 10. 테스트 전략
