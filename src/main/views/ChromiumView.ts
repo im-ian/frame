@@ -8,7 +8,7 @@ const VIEWPORT_PRELOAD = join(__dirname, '../preload/viewport.js')
 
 export class ChromiumView {
   readonly id: ViewId = randomUUID()
-  presetId: string
+  private currentPresetId: string
   readonly ready: Promise<void>
   private readonly view: WebContentsView
   private readonly parent: View
@@ -18,7 +18,7 @@ export class ChromiumView {
 
   constructor(parent: View, preset: DevicePreset) {
     this.parent = parent
-    this.presetId = preset.id
+    this.currentPresetId = preset.id
     this.currentPreset = preset
     this.view = new WebContentsView({
       webPreferences: {
@@ -37,9 +37,13 @@ export class ChromiumView {
     // current event-loop tick finish before attaching the CDP debugger.
     this.ready = new Promise((resolve) => {
       setImmediate(() => {
-        void this.applyPreset(preset).then(resolve)
+        void this.applyPreset(preset).then(resolve, resolve)
       })
     })
+  }
+
+  get presetId(): string {
+    return this.currentPresetId
   }
 
   get lastUrl(): string {
@@ -73,7 +77,7 @@ export class ChromiumView {
   }
 
   async applyPreset(preset: DevicePreset): Promise<void> {
-    this.presetId = preset.id
+    this.currentPresetId = preset.id
     this.currentPreset = preset
     const dbg = this.webContents.debugger
     if (!dbg.isAttached()) {
