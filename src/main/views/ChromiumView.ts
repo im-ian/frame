@@ -98,7 +98,8 @@ export class ChromiumView {
       })
       await dbg.sendCommand('Emulation.setTouchEmulationEnabled', {
         enabled: preset.mobile,
-        maxTouchPoints: preset.mobile ? 5 : 0
+        // CDP requires maxTouchPoints in 1..16 even when touch is disabled.
+        maxTouchPoints: preset.mobile ? 5 : 1
       })
       await dbg.sendCommand('Emulation.setUserAgentOverride', {
         userAgent: preset.userAgent,
