@@ -8,12 +8,18 @@ const VIEWPORT_PRELOAD = join(__dirname, '../preload/viewport.js')
 
 export class ChromiumView {
   readonly id: ViewId = randomUUID()
+  presetId: string
+  readonly ready: Promise<void>
   private readonly view: WebContentsView
   private readonly parent: View
   private attached = false
+  private currentUrl = ''
+  private currentPreset: DevicePreset
 
   constructor(parent: View, preset: DevicePreset) {
     this.parent = parent
+    this.presetId = preset.id
+    this.currentPreset = preset
     this.view = new WebContentsView({
       webPreferences: {
         session: getFrameSession(),
@@ -29,9 +35,23 @@ export class ChromiumView {
     // Defer applyPreset to avoid CDP session conflicts when called during an
     // active ipcRenderer.invoke (Playwright evaluate). setImmediate lets the
     // current event-loop tick finish before attaching the CDP debugger.
-    setImmediate(() => {
-      void this.applyPreset(preset)
+    this.ready = new Promise((resolve) => {
+      setImmediate(() => {
+        void this.applyPreset(preset).then(resolve)
+      })
     })
+  }
+
+  get lastUrl(): string {
+    return this.currentUrl
+  }
+
+  get width(): number {
+    return this.currentPreset.width
+  }
+
+  get height(): number {
+    return this.currentPreset.height
   }
 
   get webContents(): WebContents {
@@ -49,9 +69,12 @@ export class ChromiumView {
 
   async loadURL(url: string): Promise<void> {
     await this.webContents.loadURL(url)
+    this.currentUrl = this.webContents.getURL()
   }
 
   async applyPreset(preset: DevicePreset): Promise<void> {
+    this.presetId = preset.id
+    this.currentPreset = preset
     const dbg = this.webContents.debugger
     if (!dbg.isAttached()) {
       try {

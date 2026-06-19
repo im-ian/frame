@@ -17,13 +17,14 @@ test.afterAll(async () => {
   await app.close()
 })
 
-test('creates a Chromium viewport that loads a URL', async () => {
-  const result = await window.evaluate(
-    (args) => (window as any).frameTest.createTestView(args.presetId, args.url),
-    { presetId: 'iphone-14', url: 'data:text/html,<title>vp</title><h1>hello</h1>' }
-  )
-  expect(result.id).toBeTruthy()
-  expect(result.currentUrl).toContain('data:text/html')
+test('creates a Chromium viewport as a child view', async () => {
+  await window.evaluate(() => (window as any).frameTest.addView('iphone-14'))
+  const childCount = await app.evaluate(async ({ BaseWindow }) => {
+    const w = BaseWindow.getAllWindows()[0]
+    return w.contentView.children.length
+  })
+  // 1 UI view + at least 1 viewport view
+  expect(childCount).toBeGreaterThanOrEqual(2)
 })
 
 test('the child WebContentsView is attached to the window', async () => {

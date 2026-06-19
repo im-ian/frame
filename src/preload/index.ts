@@ -12,8 +12,9 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('frameTest', {
-      createTestView: (presetId: string, url: string) =>
-        ipcRenderer.invoke('__createTestView', presetId, url)
+      addView: (presetId: string) => ipcRenderer.invoke('__addView', presetId),
+      removeView: (id: string) => ipcRenderer.invoke('__removeView', id),
+      listViews: () => ipcRenderer.invoke('__listViews')
     })
   } catch (error) {
     console.error(error)

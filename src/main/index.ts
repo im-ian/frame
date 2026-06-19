@@ -1,14 +1,14 @@
 import { app, BaseWindow, WebContentsView, ipcMain } from 'electron'
 import { join } from 'path'
-import { ChromiumView } from './views/ChromiumView'
 import { findPreset } from '../shared/presets'
+import { ViewRegistry } from './views/ViewRegistry'
 
 // Ensure app name is always 'frame', regardless of launch context
 app.setName('frame')
 
 let win: BaseWindow | null = null
 let uiView: WebContentsView | null = null
-const testViews: ChromiumView[] = []
+let registry: ViewRegistry | null = null
 
 function createWindow(): void {
   win = new BaseWindow({ width: 1280, height: 800 })
@@ -31,25 +31,38 @@ function createWindow(): void {
     void uiView.webContents.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
+  registry = new ViewRegistry(win.contentView)
+
   win.on('closed', () => {
-    for (const v of testViews) v.destroy()
+    registry?.destroyAll()
     uiView?.webContents.close()
     uiView = null
     win = null
+    registry = null
   })
 }
 
-// Test-only hook (replaced/extended by formal handler in Task 7)
-ipcMain.handle('__createTestView', async (_e, presetId: string, url: string) => {
-  if (!win) throw new Error('no window')
+ipcMain.handle('__addView', async (_e, presetId: string) => {
+  if (!registry) throw new Error('no registry')
   const preset = findPreset(presetId)
   if (!preset) throw new Error('unknown preset')
-  const view = new ChromiumView(win.contentView, preset)
-  view.setBounds({ x: 0, y: 60, width: preset.width, height: preset.height })
-  await view.loadURL(url)
-  testViews.push(view)
-  return { id: view.id, currentUrl: view.webContents.getURL() }
+  const v = registry.add(preset)
+  v.setBounds({ x: 0, y: 60, width: v.width, height: v.height })
+  // Load about:blank to give the webcontents a stable initial state and
+  // let Playwright settle its CDP attachment to the new WebContentsView
+  // before our applyPreset CDP session attaches, preventing conflicts.
+  await v.loadURL('about:blank')
+  // Now await applyPreset completion so emulation is applied before returning.
+  await v.ready
+  return registry.states()
 })
+
+ipcMain.handle('__removeView', (_e, id: string) => {
+  registry?.remove(id)
+  return registry?.states() ?? []
+})
+
+ipcMain.handle('__listViews', () => registry?.states() ?? [])
 
 app.whenReady().then(() => {
   createWindow()
