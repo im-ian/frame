@@ -7,13 +7,14 @@ import { findPreset } from '../shared/presets'
 app.setName('frame')
 
 let win: BaseWindow | null = null
+let uiView: WebContentsView | null = null
 const testViews: ChromiumView[] = []
 
 function createWindow(): void {
   win = new BaseWindow({ width: 1280, height: 800 })
 
   // Main UI (toolbar + canvas) view
-  const ui = new WebContentsView({
+  uiView = new WebContentsView({
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -21,17 +22,19 @@ function createWindow(): void {
       sandbox: false,
     },
   })
-  win.contentView.addChildView(ui)
-  ui.setBounds({ x: 0, y: 0, width: 1280, height: 800 })
+  win.contentView.addChildView(uiView)
+  uiView.setBounds({ x: 0, y: 0, width: 1280, height: 800 })
 
   if (process.env.ELECTRON_RENDERER_URL) {
-    void ui.webContents.loadURL(process.env.ELECTRON_RENDERER_URL)
+    void uiView.webContents.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
-    void ui.webContents.loadFile(join(__dirname, '../renderer/index.html'))
+    void uiView.webContents.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
   win.on('closed', () => {
     for (const v of testViews) v.destroy()
+    uiView?.webContents.close()
+    uiView = null
     win = null
   })
 }

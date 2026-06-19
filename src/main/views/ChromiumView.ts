@@ -59,21 +59,25 @@ export class ChromiumView {
         return
       }
     }
-    await dbg.sendCommand('Emulation.setDeviceMetricsOverride', {
-      width: preset.width,
-      height: preset.height,
-      deviceScaleFactor: preset.dpr,
-      mobile: preset.mobile,
-      screenOrientation: { type: 'portraitPrimary', angle: 0 },
-    })
-    await dbg.sendCommand('Emulation.setTouchEmulationEnabled', {
-      enabled: preset.mobile,
-      maxTouchPoints: preset.mobile ? 5 : 0,
-    })
-    await dbg.sendCommand('Emulation.setUserAgentOverride', {
-      userAgent: preset.userAgent,
-      platform: preset.mobile ? 'iPhone' : 'MacIntel',
-    })
+    try {
+      await dbg.sendCommand('Emulation.setDeviceMetricsOverride', {
+        width: preset.width,
+        height: preset.height,
+        deviceScaleFactor: preset.dpr,
+        mobile: preset.mobile,
+        screenOrientation: { type: 'portraitPrimary', angle: 0 },
+      })
+      await dbg.sendCommand('Emulation.setTouchEmulationEnabled', {
+        enabled: preset.mobile,
+        maxTouchPoints: preset.mobile ? 5 : 0,
+      })
+      await dbg.sendCommand('Emulation.setUserAgentOverride', {
+        userAgent: preset.userAgent,
+        platform: preset.mobile ? 'iPhone' : 'MacIntel',
+      })
+    } catch (err) {
+      console.error('applyPreset emulation failed', err)
+    }
   }
 
   destroy(): void {
