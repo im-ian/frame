@@ -1,7 +1,7 @@
 import { WebContentsView, type View, type WebContents } from 'electron'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
-import type { DevicePreset, Rect, ViewId } from '../../shared/types'
+import type { DevicePreset, Rect, ScrollState, ViewId } from '../../shared/types'
 import { getFrameSession } from '../session/partition'
 
 const VIEWPORT_PRELOAD = join(__dirname, '../preload/viewport.js')
@@ -70,6 +70,10 @@ export class ChromiumView {
     return this.view.webContents
   }
 
+  get webContentsId(): number {
+    return this.webContents.id
+  }
+
   onNavigated(cb: (url: string) => void): void {
     this.onNavigatedCb = cb
   }
@@ -86,6 +90,17 @@ export class ChromiumView {
   async loadURL(url: string): Promise<void> {
     await this.webContents.loadURL(url)
     this.currentUrl = this.webContents.getURL()
+  }
+
+  async applyScroll(s: ScrollState): Promise<void> {
+    await this.webContents.executeJavaScript(
+      `(() => {
+        const scrollingElement = document.scrollingElement || document.documentElement;
+        const maxX = Math.max(0, scrollingElement.scrollWidth - window.innerWidth);
+        const maxY = Math.max(0, scrollingElement.scrollHeight - window.innerHeight);
+        window.scrollTo(maxX * ${JSON.stringify(s.fx)}, maxY * ${JSON.stringify(s.fy)});
+      })()`
+    )
   }
 
   async applyPreset(preset: DevicePreset): Promise<void> {

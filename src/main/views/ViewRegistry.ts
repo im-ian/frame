@@ -6,6 +6,7 @@ export class ViewRegistry {
   private readonly parent: View
   private readonly views = new Map<ViewId, ChromiumView>()
   private onViewNavigated: ((id: ViewId, url: string) => void) | null = null
+  private onAdded: ((view: ChromiumView) => void) | null = null
 
   constructor(parent: View) {
     this.parent = parent
@@ -15,10 +16,15 @@ export class ViewRegistry {
     this.onViewNavigated = cb
   }
 
+  setAddedListener(cb: (view: ChromiumView) => void): void {
+    this.onAdded = cb
+  }
+
   add(preset: DevicePreset): ChromiumView {
     const view = new ChromiumView(this.parent, preset)
     view.onNavigated((url) => this.onViewNavigated?.(view.id, url))
     this.views.set(view.id, view)
+    this.onAdded?.(view)
     return view
   }
 

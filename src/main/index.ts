@@ -1,8 +1,9 @@
-import { app, BaseWindow, WebContentsView } from 'electron'
+import { app, BaseWindow, ipcMain, WebContentsView } from 'electron'
 import { join } from 'path'
 import { ViewRegistry } from './views/ViewRegistry'
 import { registerIpcHandlers } from './ipc/handlers'
 import { CH } from './ipc/channels'
+import { SyncBus } from './sync/SyncBus'
 import { findPreset } from '../shared/presets'
 
 // Ensure app name is always 'frame', regardless of launch context
@@ -15,6 +16,7 @@ const DEFAULT_URL = 'https://example.com'
 let win: BaseWindow | null = null
 let uiView: WebContentsView | null = null
 let registry: ViewRegistry | null = null
+let syncBus: SyncBus | null = null
 let mirrorEnabled = false
 
 function createWindow(): void {
@@ -46,6 +48,8 @@ function createWindow(): void {
   }
 
   registry = new ViewRegistry(win.contentView)
+  syncBus = new SyncBus(registry)
+  registry.setAddedListener((view) => syncBus?.bindWebContentsId(view.id, view.webContentsId))
   registry.setNavigationListener((id, url) => {
     uiView?.webContents.send(CH.VIEW_NAVIGATED, { id, url })
   })
@@ -66,6 +70,7 @@ function createWindow(): void {
     uiView = null
     win = null
     registry = null
+    syncBus = null
   })
 }
 
@@ -77,6 +82,9 @@ app.whenReady().then(() => {
       mirrorEnabled = v
     }
   )
+  ipcMain.on(CH.SCROLL, (event, s) => {
+    syncBus?.handleScroll(event.sender.id, s)
+  })
   createWindow()
   app.on('activate', () => {
     if (BaseWindow.getAllWindows().length === 0) createWindow()
