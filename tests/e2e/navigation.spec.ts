@@ -37,12 +37,8 @@ test.afterAll(async () => {
 })
 
 test('navigateAll loads the same URL into every view', async () => {
-  await window.getByTestId('viewport-width').fill('1440')
-  await window.getByTestId('viewport-height').fill('900')
-  await window.getByTestId('add-view').click()
-  await window.getByTestId('viewport-width').fill('390')
-  await window.getByTestId('viewport-height').fill('844')
-  await window.getByTestId('add-view').click()
+  await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
+  await window.evaluate(() => window.frame.addCustomView('Custom', 390, 844))
 
   const target = 'data:text/html,<title>nav</title><h1>navigated</h1>'
   await window.getByTestId('url-input').fill(target)
@@ -61,9 +57,7 @@ test('navigateAll loads the same URL into every view', async () => {
 })
 
 test('url input accepts hosts without a scheme', async () => {
-  await window.getByTestId('viewport-width').fill('1440')
-  await window.getByTestId('viewport-height').fill('900')
-  await window.getByTestId('add-view').click()
+  await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
 
   await window.getByTestId('url-input').fill(`${baseUrl}/short`)
   await window.getByTestId('go').click()

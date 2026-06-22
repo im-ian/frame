@@ -17,29 +17,62 @@ test.afterEach(async () => {
   await app.close()
 })
 
+async function openAddViewModal(): Promise<void> {
+  await window.getByTestId('add-view').click()
+  await expect(window.getByTestId('add-view-modal')).toBeVisible()
+}
+
+async function addPresetView(presetId: string): Promise<void> {
+  await openAddViewModal()
+  await window.getByTestId('preset-select').selectOption(presetId)
+  await window.getByTestId('confirm-add-view').click()
+}
+
+async function addCustomView(width: number, height: number): Promise<void> {
+  await openAddViewModal()
+  await window.getByTestId('mode-custom').click()
+  await window.getByTestId('viewport-width').fill(String(width))
+  await window.getByTestId('viewport-height').fill(String(height))
+  await window.getByTestId('confirm-add-view').click()
+}
+
 test('toolbar controls are present', async () => {
   await expect(window.getByTestId('url-input')).toBeVisible()
-  await expect(window.getByTestId('viewport-width')).toBeVisible()
-  await expect(window.getByTestId('viewport-height')).toBeVisible()
   await expect(window.getByTestId('add-view')).toBeVisible()
   await expect(window.getByTestId('mirror-toggle')).toBeVisible()
   await expect(window.getByTestId('go')).toBeVisible()
+  await expect(window.getByTestId('add-view-modal')).toHaveCount(0)
+})
+
+test('add view modal supports presets and custom pixels', async () => {
+  await openAddViewModal()
+  await expect(window.getByTestId('mode-preset')).toHaveAttribute('aria-pressed', 'true')
+  await expect(window.getByTestId('preset-select')).toBeVisible()
+  await expect(window.getByTestId('viewport-width')).toHaveCount(0)
+
+  await window.getByTestId('mode-custom').click()
+  await expect(window.getByTestId('mode-custom')).toHaveAttribute('aria-pressed', 'true')
+  await expect(window.getByTestId('viewport-width')).toBeVisible()
+  await expect(window.getByTestId('viewport-height')).toBeVisible()
   await expect(window.getByTestId('preset-select')).toHaveCount(0)
 })
 
-test('adding a view renders a device frame', async () => {
-  await window.getByTestId('viewport-width').fill('412')
-  await window.getByTestId('viewport-height').fill('915')
-  await window.getByTestId('add-view').click()
+test('adding a preset from the modal renders a preset device frame', async () => {
+  await addPresetView('iphone-14')
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
+  await expect(window.getByTestId('device-frame')).toContainText('iPhone 14')
+  await expect(window.getByTestId('device-frame')).toContainText('390 × 844')
+})
+
+test('adding custom pixels from the modal renders a custom device frame', async () => {
+  await addCustomView(412, 915)
   await expect(window.getByTestId('device-frame')).toHaveCount(1)
   await expect(window.getByTestId('device-frame')).toContainText('Custom')
   await expect(window.getByTestId('device-frame')).toContainText('412 × 915')
 })
 
 test('close button removes a device frame', async () => {
-  await window.getByTestId('viewport-width').fill('390')
-  await window.getByTestId('viewport-height').fill('844')
-  await window.getByTestId('add-view').click()
+  await addCustomView(390, 844)
 
   await window.getByTestId('device-frame-drag-handle').hover()
   const close = window.getByRole('button', { name: 'Remove Custom viewport' })
@@ -50,9 +83,7 @@ test('close button removes a device frame', async () => {
 })
 
 test('dragging a device frame shows a ghost preview', async () => {
-  await window.getByTestId('viewport-width').fill('390')
-  await window.getByTestId('viewport-height').fill('844')
-  await window.getByTestId('add-view').click()
+  await addCustomView(390, 844)
 
   const handle = await window.getByTestId('device-frame-drag-handle').boundingBox()
   if (!handle) throw new Error('missing drag handle')
@@ -71,12 +102,8 @@ test('dragging a device frame shows a ghost preview', async () => {
 })
 
 test('dragging over a device frame shows a drop placeholder', async () => {
-  await window.getByTestId('viewport-width').fill('390')
-  await window.getByTestId('viewport-height').fill('844')
-  await window.getByTestId('add-view').click()
-  await window.getByTestId('viewport-width').fill('768')
-  await window.getByTestId('viewport-height').fill('1024')
-  await window.getByTestId('add-view').click()
+  await addCustomView(390, 844)
+  await addCustomView(768, 1024)
 
   const source = await window.getByTestId('device-frame-drag-handle').nth(1).boundingBox()
   const target = await window.getByTestId('device-frame-drag-handle').first().boundingBox()
@@ -101,12 +128,8 @@ test('dragging over a device frame shows a drop placeholder', async () => {
 })
 
 test('device frames can be dragged into a new order', async () => {
-  await window.getByTestId('viewport-width').fill('390')
-  await window.getByTestId('viewport-height').fill('844')
-  await window.getByTestId('add-view').click()
-  await window.getByTestId('viewport-width').fill('768')
-  await window.getByTestId('viewport-height').fill('1024')
-  await window.getByTestId('add-view').click()
+  await addCustomView(390, 844)
+  await addCustomView(768, 1024)
 
   await expect(window.getByTestId('device-frame').first()).toContainText('390 × 844')
 

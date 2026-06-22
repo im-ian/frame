@@ -18,9 +18,7 @@ test.afterAll(async () => {
 })
 
 test('native view bounds follow the measured slot rect', async () => {
-  await window.getByTestId('viewport-width').fill('414')
-  await window.getByTestId('viewport-height').fill('896')
-  await window.getByTestId('add-view').click()
+  await window.evaluate(() => window.frame.addCustomView('Custom', 414, 896))
   await expect(window.getByTestId('device-frame')).toHaveCount(1)
 
   // slot의 DOM rect

@@ -57,10 +57,8 @@ test.beforeAll(async () => {
     env: { ...process.env, NODE_ENV: 'test' }
   })
   window = await app.firstWindow()
-  await window.getByTestId('viewport-width').fill('1440')
-  await window.getByTestId('viewport-height').fill('900')
-  await window.getByTestId('add-view').click()
-  await window.getByTestId('add-view').click()
+  await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
+  await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
   await window.getByTestId('url-input').fill(CLICK_PAGE)
   await window.getByTestId('go').click()
   await window.getByTestId('mirror-toggle').locator('input').check()
