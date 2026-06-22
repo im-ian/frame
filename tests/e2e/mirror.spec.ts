@@ -57,7 +57,8 @@ test.beforeAll(async () => {
     env: { ...process.env, NODE_ENV: 'test' }
   })
   window = await app.firstWindow()
-  await window.getByTestId('preset-select').selectOption('desktop-1440')
+  await window.getByTestId('viewport-width').fill('1440')
+  await window.getByTestId('viewport-height').fill('900')
   await window.getByTestId('add-view').click()
   await window.getByTestId('add-view').click()
   await window.getByTestId('url-input').fill(CLICK_PAGE)

@@ -50,10 +50,8 @@ test.afterEach(async () => {
 })
 
 test('device frame navigation buttons move only their viewport through history', async () => {
-  await window.getByTestId('preset-select').selectOption('desktop-1440')
-  await window.getByTestId('add-view').click()
-  await window.getByTestId('preset-select').selectOption('iphone-14')
-  await window.getByTestId('add-view').click()
+  await window.evaluate(() => window.frame.addView('desktop-1440'))
+  await window.evaluate(() => window.frame.addView('iphone-14'))
   await expect(window.getByTestId('device-frame')).toHaveCount(2)
 
   const firstPage = `${baseUrl}/first`

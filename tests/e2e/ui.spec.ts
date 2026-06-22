@@ -19,24 +19,30 @@ test.afterEach(async () => {
 
 test('toolbar controls are present', async () => {
   await expect(window.getByTestId('url-input')).toBeVisible()
+  await expect(window.getByTestId('viewport-width')).toBeVisible()
+  await expect(window.getByTestId('viewport-height')).toBeVisible()
   await expect(window.getByTestId('add-view')).toBeVisible()
   await expect(window.getByTestId('mirror-toggle')).toBeVisible()
   await expect(window.getByTestId('go')).toBeVisible()
-  await expect(window.getByTestId('preset-select')).toBeVisible()
+  await expect(window.getByTestId('preset-select')).toHaveCount(0)
 })
 
 test('adding a view renders a device frame', async () => {
-  await window.getByTestId('preset-select').selectOption('iphone-14')
+  await window.getByTestId('viewport-width').fill('412')
+  await window.getByTestId('viewport-height').fill('915')
   await window.getByTestId('add-view').click()
   await expect(window.getByTestId('device-frame')).toHaveCount(1)
+  await expect(window.getByTestId('device-frame')).toContainText('Custom')
+  await expect(window.getByTestId('device-frame')).toContainText('412 × 915')
 })
 
 test('close button removes a device frame', async () => {
-  await window.getByTestId('preset-select').selectOption('iphone-14')
+  await window.getByTestId('viewport-width').fill('390')
+  await window.getByTestId('viewport-height').fill('844')
   await window.getByTestId('add-view').click()
 
   await window.getByTestId('device-frame-drag-handle').hover()
-  const close = window.getByRole('button', { name: 'Remove iPhone 14 viewport' })
+  const close = window.getByRole('button', { name: 'Remove Custom viewport' })
   await expect(close).toHaveCSS('opacity', '1')
   await close.click()
 
@@ -44,7 +50,8 @@ test('close button removes a device frame', async () => {
 })
 
 test('dragging a device frame shows a ghost preview', async () => {
-  await window.getByTestId('preset-select').selectOption('iphone-14')
+  await window.getByTestId('viewport-width').fill('390')
+  await window.getByTestId('viewport-height').fill('844')
   await window.getByTestId('add-view').click()
 
   const handle = await window.getByTestId('device-frame-drag-handle').boundingBox()
@@ -56,7 +63,7 @@ test('dragging a device frame shows a ghost preview', async () => {
 
   const ghost = window.getByTestId('device-frame-drag-ghost')
   await expect(ghost).toBeVisible()
-  await expect(ghost).toContainText('iPhone 14')
+  await expect(ghost).toContainText('Custom')
   await expect(ghost).toContainText('390 × 844')
 
   await window.mouse.up()
@@ -64,9 +71,11 @@ test('dragging a device frame shows a ghost preview', async () => {
 })
 
 test('dragging over a device frame shows a drop placeholder', async () => {
-  await window.getByTestId('preset-select').selectOption('iphone-14')
+  await window.getByTestId('viewport-width').fill('390')
+  await window.getByTestId('viewport-height').fill('844')
   await window.getByTestId('add-view').click()
-  await window.getByTestId('preset-select').selectOption('ipad')
+  await window.getByTestId('viewport-width').fill('768')
+  await window.getByTestId('viewport-height').fill('1024')
   await window.getByTestId('add-view').click()
 
   const source = await window.getByTestId('device-frame-drag-handle').nth(1).boundingBox()
@@ -92,12 +101,14 @@ test('dragging over a device frame shows a drop placeholder', async () => {
 })
 
 test('device frames can be dragged into a new order', async () => {
-  await window.getByTestId('preset-select').selectOption('iphone-14')
+  await window.getByTestId('viewport-width').fill('390')
+  await window.getByTestId('viewport-height').fill('844')
   await window.getByTestId('add-view').click()
-  await window.getByTestId('preset-select').selectOption('ipad')
+  await window.getByTestId('viewport-width').fill('768')
+  await window.getByTestId('viewport-height').fill('1024')
   await window.getByTestId('add-view').click()
 
-  await expect(window.getByTestId('device-frame').first()).toContainText('iPhone 14')
+  await expect(window.getByTestId('device-frame').first()).toContainText('390 × 844')
 
   const source = await window.getByTestId('device-frame-drag-handle').nth(1).boundingBox()
   const target = await window.getByTestId('device-frame-drag-handle').first().boundingBox()
@@ -110,5 +121,5 @@ test('device frames can be dragged into a new order', async () => {
   })
   await window.mouse.up()
 
-  await expect(window.getByTestId('device-frame').first()).toContainText('iPad')
+  await expect(window.getByTestId('device-frame').first()).toContainText('768 × 1024')
 })

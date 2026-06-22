@@ -18,7 +18,8 @@ test.afterAll(async () => {
 })
 
 test('native view bounds follow the measured slot rect', async () => {
-  await window.getByTestId('preset-select').selectOption('iphone-14')
+  await window.getByTestId('viewport-width').fill('414')
+  await window.getByTestId('viewport-height').fill('896')
   await window.getByTestId('add-view').click()
   await expect(window.getByTestId('device-frame')).toHaveCount(1)
 

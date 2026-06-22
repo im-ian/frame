@@ -37,9 +37,11 @@ test.afterAll(async () => {
 })
 
 test('navigateAll loads the same URL into every view', async () => {
-  await window.getByTestId('preset-select').selectOption('desktop-1440')
+  await window.getByTestId('viewport-width').fill('1440')
+  await window.getByTestId('viewport-height').fill('900')
   await window.getByTestId('add-view').click()
-  await window.getByTestId('preset-select').selectOption('iphone-14')
+  await window.getByTestId('viewport-width').fill('390')
+  await window.getByTestId('viewport-height').fill('844')
   await window.getByTestId('add-view').click()
 
   const target = 'data:text/html,<title>nav</title><h1>navigated</h1>'
@@ -59,7 +61,8 @@ test('navigateAll loads the same URL into every view', async () => {
 })
 
 test('url input accepts hosts without a scheme', async () => {
-  await window.getByTestId('preset-select').selectOption('desktop-1440')
+  await window.getByTestId('viewport-width').fill('1440')
+  await window.getByTestId('viewport-height').fill('900')
   await window.getByTestId('add-view').click()
 
   await window.getByTestId('url-input').fill(`${baseUrl}/short`)
@@ -80,8 +83,7 @@ test('url input accepts hosts without a scheme', async () => {
 
 test('navigation events preserve viewport metadata when only URL changes', async () => {
   const before = await window.evaluate(() => window.frame.listViews())
-  await window.getByTestId('preset-select').selectOption('ipad')
-  await window.getByTestId('add-view').click()
+  await window.evaluate(() => window.frame.addView('ipad'))
   await expect
     .poll(async () => (await window.evaluate(() => window.frame.listViews())).length)
     .toBe(before.length + 1)
