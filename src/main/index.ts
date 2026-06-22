@@ -21,7 +21,7 @@ let syncBus: SyncBus | null = null
 let mirrorEnabled = false
 
 function createWindow(): void {
-  win = new BaseWindow({ width: 1440, height: 900 })
+  win = new BaseWindow({ width: 1440, height: 900, show: process.env.NODE_ENV !== 'test' })
 
   // Main UI (toolbar + canvas) view, kept sized to the window.
   uiView = new WebContentsView({

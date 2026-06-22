@@ -25,3 +25,11 @@ test('app name is frame', async () => {
   const name = await app.evaluate(async ({ app }) => app.getName())
   expect(name).toBe('frame')
 })
+
+test('test windows stay hidden', async () => {
+  const visible = await app.evaluate(async ({ BaseWindow }) => {
+    const w = BaseWindow.getAllWindows()[0]
+    return w.isVisible()
+  })
+  expect(visible).toBe(false)
+})
