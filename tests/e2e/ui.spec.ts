@@ -97,6 +97,29 @@ test('add view modal keeps native panes behind the overlay', async () => {
   await expect.poll(() => nativeViewportBounds()).toEqual(visibleBounds)
 })
 
+test('add view modal waits for native panes to be hidden before rendering', async () => {
+  await window.evaluate(() => window.frame.addCustomView('Custom', 1200, 900))
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
+
+  await app.evaluate(async ({ BaseWindow, ipcMain }) => {
+    ipcMain.removeHandler('frame:set-native-views-occluded')
+    ipcMain.handle('frame:set-native-views-occluded', async (_event, occluded: boolean) => {
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      const w = BaseWindow.getAllWindows()[0]
+      for (const view of w.contentView.children.slice(1) as WebContentsView[]) {
+        if (occluded) {
+          view.setBounds({ x: -10000, y: -10000, width: 1, height: 1 })
+        }
+      }
+    })
+  })
+
+  await window.getByTestId('add-view').click()
+  await window.waitForTimeout(100)
+  await expect(window.getByTestId('add-view-modal')).toHaveCount(0)
+  await expect(window.getByTestId('add-view-modal')).toBeVisible()
+})
+
 test('adding a preset from the modal renders a preset device frame', async () => {
   await addPresetView('iphone-14')
   await expect(window.getByTestId('device-frame')).toHaveCount(1)
