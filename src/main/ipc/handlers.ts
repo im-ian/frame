@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import type { Rect, ViewId } from '../../shared/types'
 import { findPreset, parseCustomPreset } from '../../shared/presets'
+import { normalizeNavigationUrl } from '../../shared/navigation'
 import type { ViewRegistry } from '../views/ViewRegistry'
 import { CH } from './channels'
 
@@ -51,7 +52,7 @@ export function registerIpcHandlers(
   ipcMain.handle(CH.NAVIGATE_ALL, async (_e, url: string) => {
     const registry = getRegistry()
     if (!registry) throw new Error('no active window')
-    await registry.navigateAll(url)
+    await registry.navigateAll(normalizeNavigationUrl(url))
     return registry.states()
   })
 

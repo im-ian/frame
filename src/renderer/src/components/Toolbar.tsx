@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { DEFAULT_PRESETS } from '../../../shared/presets'
 import { DEFAULT_START_URL } from '../../../shared/defaults'
+import { normalizeNavigationUrl } from '../../../shared/navigation'
 
 interface Props {
   onNavigate: (url: string) => void
@@ -12,6 +13,12 @@ export function Toolbar({ onNavigate, onAddView, onToggleMirror }: Props): React
   const [url, setUrl] = useState(DEFAULT_START_URL)
   const [presetId, setPresetId] = useState(() => DEFAULT_PRESETS[0]?.id ?? '')
   const [mirror, setMirror] = useState(false)
+  const submitUrl = (): void => {
+    const normalized = normalizeNavigationUrl(url)
+    if (!normalized) return
+    setUrl(normalized)
+    onNavigate(normalized)
+  }
 
   return (
     <header className="toolbar">
@@ -28,10 +35,10 @@ export function Toolbar({ onNavigate, onAddView, onToggleMirror }: Props): React
           placeholder="Enter a URL"
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') onNavigate(url)
+            if (e.key === 'Enter') submitUrl()
           }}
         />
-        <button className="urlbar__go" data-testid="go" onClick={() => onNavigate(url)}>
+        <button className="urlbar__go" data-testid="go" onClick={submitUrl}>
           Go
         </button>
       </div>
