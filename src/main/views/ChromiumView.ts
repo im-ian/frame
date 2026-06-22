@@ -138,11 +138,47 @@ export class ChromiumView {
       return
     }
 
+    if (ev.kind === 'text') {
+      void this.applyTextMirror(ev)
+      return
+    }
+
     this.webContents.sendInputEvent({
       type: ev.type,
       keyCode: ev.keyCode,
       modifiers: ev.modifiers
     } as KeyboardInputEvent)
+  }
+
+  private async applyTextMirror(ev: Extract<MirrorEvent, { kind: 'text' }>): Promise<void> {
+    await this.webContents.executeJavaScript(
+      `(() => {
+        const selector = ${JSON.stringify(ev.selector)};
+        const value = ${JSON.stringify(ev.value)};
+        const selectionStart = ${JSON.stringify(ev.selectionStart)};
+        const selectionEnd = ${JSON.stringify(ev.selectionEnd)};
+        const el = selector ? document.querySelector(selector) : document.activeElement;
+        if (!el) return;
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          if (el.value === value) return;
+          el.value = value;
+          if (selectionStart != null && selectionEnd != null) {
+            try {
+              el.setSelectionRange(selectionStart, selectionEnd);
+            } catch {
+              // Some input types do not support selection ranges.
+            }
+          }
+          el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+          return;
+        }
+        if (el instanceof HTMLElement && el.isContentEditable) {
+          if (el.textContent === value) return;
+          el.textContent = value;
+          el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+        }
+      })()`
+    )
   }
 
   async applyPreset(preset: DevicePreset): Promise<void> {

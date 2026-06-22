@@ -49,3 +49,10 @@ export type MirrorEvent =
       keyCode: string
       modifiers: string[]
     }
+  | {
+      kind: 'text'
+      selector: string | null
+      value: string
+      selectionStart: number | null
+      selectionEnd: number | null
+    }

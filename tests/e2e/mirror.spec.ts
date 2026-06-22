@@ -125,9 +125,7 @@ test('typing in the focused view is mirrored to the other view', async () => {
       app.evaluate(async ({ BaseWindow }) => {
         const w = BaseWindow.getAllWindows()[0]
         const second = w.contentView.children[2] as WebContentsView
-        return second.webContents.executeJavaScript(
-          `document.querySelector('#field')?.value ?? ''`
-        )
+        return second.webContents.executeJavaScript(`document.querySelector('#field')?.value ?? ''`)
       })
     )
     .toBe('hi')
