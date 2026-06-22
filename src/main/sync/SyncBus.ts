@@ -5,6 +5,7 @@ export class SyncBus {
   private readonly registry: ViewRegistry
   private readonly wcIdToViewId = new Map<number, ViewId>()
   private readonly suppressedMirrorUntil = new Map<ViewId, number>()
+  private readonly suppressedNavigationUntil = new Map<ViewId, { url: string; until: number }>()
 
   constructor(registry: ViewRegistry) {
     this.registry = registry
@@ -37,6 +38,18 @@ export class SyncBus {
     }
   }
 
+  handleNavigation(originId: ViewId, url: string, mirrorOn: boolean): void {
+    if (!mirrorOn || !url || url === 'about:blank') return
+    if (this.registry.isNavigatingAll(url)) return
+    if (this.isNavigationSuppressed(originId, url)) return
+
+    for (const view of this.registry.list()) {
+      if (view.id === originId || view.lastUrl === url) continue
+      this.suppressNavigationFrom(view.id, url)
+      void view.loadURL(url)
+    }
+  }
+
   private suppressEchoFrom(id: ViewId): void {
     this.suppressedMirrorUntil.set(id, Date.now() + 250)
   }
@@ -48,6 +61,22 @@ export class SyncBus {
       this.suppressedMirrorUntil.delete(id)
       return false
     }
+    return true
+  }
+
+  private suppressNavigationFrom(id: ViewId, url: string): void {
+    this.suppressedNavigationUntil.set(id, { url, until: Date.now() + 5000 })
+  }
+
+  private isNavigationSuppressed(id: ViewId, url: string): boolean {
+    const suppressed = this.suppressedNavigationUntil.get(id)
+    if (!suppressed) return false
+    if (suppressed.until < Date.now()) {
+      this.suppressedNavigationUntil.delete(id)
+      return false
+    }
+    if (suppressed.url !== url) return false
+    this.suppressedNavigationUntil.delete(id)
     return true
   }
 }

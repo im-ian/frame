@@ -39,7 +39,9 @@ test.beforeAll(async () => {
         res.end('<!doctype html><title>nav-target</title><h1>target</h1>')
         return
       }
-      res.end('<!doctype html><title>nav-blank</title><body style="margin:0;padding:40px">blank</body>')
+      res.end(
+        '<!doctype html><title>nav-blank</title><body style="margin:0;padding:40px">blank</body>'
+      )
     })
     server.listen(0, '127.0.0.1', () => {
       const addr = server.address()
@@ -201,6 +203,7 @@ test('input value changes in the focused view are mirrored to the other view', a
 })
 
 test('navigation from the focused view is mirrored even when the target layout differs', async () => {
+  await window.getByTestId('mirror-toggle').locator('input').uncheck()
   await app.evaluate(
     async ({ BaseWindow }, urls) => {
       const w = BaseWindow.getAllWindows()[0]
@@ -224,6 +227,7 @@ test('navigation from the focused view is mirrored even when the target layout d
       })
     )
     .toEqual(['nav-source', 'nav-blank'])
+  await window.getByTestId('mirror-toggle').locator('input').check()
 
   await app.evaluate(async ({ BaseWindow }) => {
     const w = BaseWindow.getAllWindows()[0]

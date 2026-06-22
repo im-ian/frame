@@ -7,6 +7,8 @@ export class ViewRegistry {
   private readonly views = new Map<ViewId, ChromiumView>()
   private onViewNavigated: ((state: ViewState) => void) | null = null
   private onAdded: ((view: ChromiumView) => void) | null = null
+  private navigateAllDepth = 0
+  private navigateAllUrl: string | null = null
 
   constructor(parent: View) {
     this.parent = parent
@@ -59,6 +61,10 @@ export class ViewRegistry {
     await this.views.get(id)?.reload()
   }
 
+  isNavigatingAll(url: string): boolean {
+    return this.navigateAllDepth > 0 && this.navigateAllUrl === url
+  }
+
   private stateFor(v: ChromiumView): ViewState {
     return {
       id: v.id,
@@ -72,7 +78,14 @@ export class ViewRegistry {
   }
 
   async navigateAll(url: string): Promise<void> {
-    await Promise.all(this.list().map((v) => v.loadURL(url)))
+    this.navigateAllDepth += 1
+    this.navigateAllUrl = url
+    try {
+      await Promise.all(this.list().map((v) => v.loadURL(url)))
+    } finally {
+      this.navigateAllDepth -= 1
+      if (this.navigateAllDepth === 0) this.navigateAllUrl = null
+    }
   }
 
   destroyAll(): void {
