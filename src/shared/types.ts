@@ -20,6 +20,8 @@ export interface ViewState {
   canGoForward: boolean
 }
 
+export type ViewStateUpdate = Pick<ViewState, 'id'> & Partial<Omit<ViewState, 'id'>>
+
 export interface Rect {
   x: number
   y: number

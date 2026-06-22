@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Rect, ViewId, ViewState } from '../shared/types'
+import type { Rect, ViewId, ViewState, ViewStateUpdate } from '../shared/types'
 
 const api = {
   addView: (presetId: string): Promise<ViewState[]> =>
@@ -22,8 +22,8 @@ const api = {
     ipcRenderer.on('frame:views-changed', h)
     return () => ipcRenderer.removeListener('frame:views-changed', h)
   },
-  onViewNavigated: (cb: (state: ViewState) => void): (() => void) => {
-    const h = (_e: unknown, state: ViewState): void => cb(state)
+  onViewNavigated: (cb: (state: ViewStateUpdate) => void): (() => void) => {
+    const h = (_e: unknown, state: ViewStateUpdate): void => cb(state)
     ipcRenderer.on('frame:view-navigated', h)
     return () => ipcRenderer.removeListener('frame:view-navigated', h)
   }

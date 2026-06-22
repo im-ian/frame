@@ -79,11 +79,17 @@ test('url input accepts hosts without a scheme', async () => {
 })
 
 test('navigation events preserve viewport metadata when only URL changes', async () => {
+  const before = await window.evaluate(() => window.frame.listViews())
   await window.getByTestId('preset-select').selectOption('ipad')
   await window.getByTestId('add-view').click()
-  await expect(window.getByTestId('device-frame')).toContainText('iPad')
+  await expect
+    .poll(async () => (await window.evaluate(() => window.frame.listViews())).length)
+    .toBe(before.length + 1)
+  const states = await window.evaluate(() => window.frame.listViews())
+  const state = states[states.length - 1]
+  const frame = window.locator(`[data-view-id="${state.id}"]`)
+  await expect(frame).toContainText('iPad')
 
-  const [state] = await window.evaluate(() => window.frame.listViews())
   await app.evaluate(
     async ({ BaseWindow }, payload) => {
       const w = BaseWindow.getAllWindows()[0]
@@ -93,6 +99,6 @@ test('navigation events preserve viewport metadata when only URL changes', async
     { id: state.id, url: 'https://example.com' }
   )
 
-  await expect(window.getByTestId('device-frame')).toContainText('iPad')
-  await expect(window.getByTestId('device-frame')).not.toContainText('Custom')
+  await expect(frame).toContainText('iPad')
+  await expect(frame).not.toContainText('Custom')
 })
