@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { DEFAULT_PRESETS } from '../../../shared/presets'
+import { DEFAULT_PRESET_GROUPS, DEFAULT_PRESETS } from '../../../shared/presets'
 import { DEFAULT_START_URL } from '../../../shared/defaults'
 import { normalizeNavigationUrl } from '../../../shared/navigation'
 
@@ -227,10 +227,14 @@ function AddViewModal({
             value={presetId}
             onChange={(e) => setPresetId(e.target.value)}
           >
-            {DEFAULT_PRESETS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
+            {DEFAULT_PRESET_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.presets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         ) : (
