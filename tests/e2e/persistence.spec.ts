@@ -11,15 +11,18 @@ let tempDir = ''
 let workspacePath = ''
 
 async function launch(): Promise<{ app: ElectronApplication; window: Page }> {
+  const userDataPath = await mkdtemp(path.join(tempDir, 'user-data-'))
   const app = await electron.launch({
     args: [path.join(__dirname, '..', '..', 'out', 'main', 'index.js')],
     env: {
       ...process.env,
       NODE_ENV: 'test',
-      FRAME_WORKSPACE_PATH: workspacePath
+      FRAME_WORKSPACE_PATH: workspacePath,
+      FRAME_USER_DATA_PATH: userDataPath
     }
   })
   const window = await app.firstWindow()
+  await window.waitForFunction(() => typeof window.frame?.listViews === 'function')
   return { app, window }
 }
 
@@ -49,12 +52,9 @@ test.afterAll(async () => {
 
 test('restores the last open viewports and URLs after restart', async () => {
   const firstRun = await launch()
-  await firstRun.window.getByTestId('preset-select').selectOption('ipad')
-  await firstRun.window.getByTestId('add-view').click()
-  await firstRun.window.getByTestId('preset-select').selectOption('desktop-1440')
-  await firstRun.window.getByTestId('add-view').click()
-  await firstRun.window.getByTestId('url-input').fill(`${baseUrl}/saved`)
-  await firstRun.window.getByTestId('go').click()
+  await firstRun.window.evaluate(() => window.frame.addView('ipad'))
+  await firstRun.window.evaluate(() => window.frame.addView('desktop-1440'))
+  await firstRun.window.evaluate((url) => window.frame.navigateAll(url), `${baseUrl}/saved`)
   await expect
     .poll(() => firstRun.window.evaluate(() => window.frame.listViews()))
     .toMatchObject([

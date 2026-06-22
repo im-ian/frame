@@ -8,7 +8,8 @@ import { CH } from './channels'
 export function registerIpcHandlers(
   getRegistry: () => ViewRegistry | null,
   _getMirror: () => boolean,
-  setMirror: (v: boolean) => void
+  setMirror: (v: boolean) => void,
+  onWorkspaceChanged: () => void = () => undefined
 ): void {
   ipcMain.handle(CH.ADD_VIEW, async (_e, presetId: string) => {
     const registry = getRegistry()
@@ -22,6 +23,7 @@ export function registerIpcHandlers(
     await view.loadURL('about:blank')
     // Await applyPreset completion so emulation is applied before returning.
     await view.ready
+    onWorkspaceChanged()
     return registry.states()
   })
 
@@ -33,6 +35,7 @@ export function registerIpcHandlers(
     view.setBounds({ x: 0, y: 60, width: view.width, height: view.height })
     await view.loadURL('about:blank')
     await view.ready
+    onWorkspaceChanged()
     return registry.states()
   })
 
@@ -40,6 +43,7 @@ export function registerIpcHandlers(
     const registry = getRegistry()
     if (!registry) throw new Error('no active window')
     registry.remove(id)
+    onWorkspaceChanged()
     return registry.states()
   })
 
@@ -53,6 +57,7 @@ export function registerIpcHandlers(
     const registry = getRegistry()
     if (!registry) throw new Error('no active window')
     await registry.navigateAll(normalizeNavigationUrl(url))
+    onWorkspaceChanged()
     return registry.states()
   })
 
@@ -60,6 +65,7 @@ export function registerIpcHandlers(
     const registry = getRegistry()
     if (!registry) throw new Error('no active window')
     await registry.goBack(id)
+    onWorkspaceChanged()
     return registry.states()
   })
 
@@ -67,6 +73,7 @@ export function registerIpcHandlers(
     const registry = getRegistry()
     if (!registry) throw new Error('no active window')
     await registry.goForward(id)
+    onWorkspaceChanged()
     return registry.states()
   })
 
@@ -74,6 +81,7 @@ export function registerIpcHandlers(
     const registry = getRegistry()
     if (!registry) throw new Error('no active window')
     await registry.reload(id)
+    onWorkspaceChanged()
     return registry.states()
   })
 
@@ -95,6 +103,7 @@ export function registerIpcHandlers(
     const view = registry.get(id)
     if (!view) throw new Error(`unknown view id: ${id}`)
     await view.applyPreset(preset)
+    onWorkspaceChanged()
     return registry.states()
   })
 }

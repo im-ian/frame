@@ -55,6 +55,10 @@ export class ChromiumView {
     return this.currentPresetId
   }
 
+  get preset(): DevicePreset {
+    return this.currentPreset
+  }
+
   get lastUrl(): string {
     return this.currentUrl
   }

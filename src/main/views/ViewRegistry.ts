@@ -1,5 +1,6 @@
 import type { View } from 'electron'
 import type { DevicePreset, ViewId, ViewState } from '../../shared/types'
+import type { PersistedWorkspace } from '../workspace/persistence'
 import { ChromiumView } from './ChromiumView'
 
 export class ViewRegistry {
@@ -47,6 +48,16 @@ export class ViewRegistry {
 
   states(): ViewState[] {
     return this.list().map((v) => this.stateFor(v))
+  }
+
+  workspace(): PersistedWorkspace {
+    return {
+      version: 1,
+      views: this.list().map((v) => ({
+        preset: v.preset,
+        url: v.lastUrl || 'about:blank'
+      }))
+    }
   }
 
   async goBack(id: ViewId): Promise<void> {
