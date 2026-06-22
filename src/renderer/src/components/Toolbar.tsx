@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { DEFAULT_PRESETS } from '../../../shared/presets'
+import { DEFAULT_START_URL } from '../../../shared/defaults'
 
 interface Props {
   onNavigate: (url: string) => void
@@ -8,7 +9,7 @@ interface Props {
 }
 
 export function Toolbar({ onNavigate, onAddView, onToggleMirror }: Props): React.JSX.Element {
-  const [url, setUrl] = useState('https://example.com')
+  const [url, setUrl] = useState(DEFAULT_START_URL)
   const [presetId, setPresetId] = useState(() => DEFAULT_PRESETS[0]?.id ?? '')
   const [mirror, setMirror] = useState(false)
 
