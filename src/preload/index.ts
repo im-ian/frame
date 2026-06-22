@@ -9,6 +9,9 @@ const api = {
   removeView: (id: ViewId): Promise<ViewState[]> => ipcRenderer.invoke('frame:remove-view', id),
   listViews: (): Promise<ViewState[]> => ipcRenderer.invoke('frame:list-views'),
   navigateAll: (url: string): Promise<ViewState[]> => ipcRenderer.invoke('frame:navigate-all', url),
+  goBack: (id: ViewId): Promise<ViewState[]> => ipcRenderer.invoke('frame:go-back', id),
+  goForward: (id: ViewId): Promise<ViewState[]> => ipcRenderer.invoke('frame:go-forward', id),
+  reload: (id: ViewId): Promise<ViewState[]> => ipcRenderer.invoke('frame:reload', id),
   setLayout: (rects: Array<{ id: ViewId; rect: Rect }>): Promise<void> =>
     ipcRenderer.invoke('frame:set-layout', rects),
   setMirror: (on: boolean): Promise<void> => ipcRenderer.invoke('frame:set-mirror', on),
@@ -19,8 +22,8 @@ const api = {
     ipcRenderer.on('frame:views-changed', h)
     return () => ipcRenderer.removeListener('frame:views-changed', h)
   },
-  onViewNavigated: (cb: (p: { id: ViewId; url: string }) => void): (() => void) => {
-    const h = (_e: unknown, p: { id: ViewId; url: string }): void => cb(p)
+  onViewNavigated: (cb: (state: ViewState) => void): (() => void) => {
+    const h = (_e: unknown, state: ViewState): void => cb(state)
     ipcRenderer.on('frame:view-navigated', h)
     return () => ipcRenderer.removeListener('frame:view-navigated', h)
   }

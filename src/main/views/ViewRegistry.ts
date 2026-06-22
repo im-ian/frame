@@ -5,14 +5,14 @@ import { ChromiumView } from './ChromiumView'
 export class ViewRegistry {
   private readonly parent: View
   private readonly views = new Map<ViewId, ChromiumView>()
-  private onViewNavigated: ((id: ViewId, url: string) => void) | null = null
+  private onViewNavigated: ((state: ViewState) => void) | null = null
   private onAdded: ((view: ChromiumView) => void) | null = null
 
   constructor(parent: View) {
     this.parent = parent
   }
 
-  setNavigationListener(cb: (id: ViewId, url: string) => void): void {
+  setNavigationListener(cb: (state: ViewState) => void): void {
     this.onViewNavigated = cb
   }
 
@@ -22,8 +22,8 @@ export class ViewRegistry {
 
   add(preset: DevicePreset): ChromiumView {
     const view = new ChromiumView(this.parent, preset)
-    view.onNavigated((url) => this.onViewNavigated?.(view.id, url))
     this.views.set(view.id, view)
+    view.onNavigated(() => this.onViewNavigated?.(this.stateFor(view)))
     this.onAdded?.(view)
     return view
   }
@@ -44,13 +44,31 @@ export class ViewRegistry {
   }
 
   states(): ViewState[] {
-    return this.list().map((v) => ({
+    return this.list().map((v) => this.stateFor(v))
+  }
+
+  async goBack(id: ViewId): Promise<void> {
+    await this.views.get(id)?.goBack()
+  }
+
+  async goForward(id: ViewId): Promise<void> {
+    await this.views.get(id)?.goForward()
+  }
+
+  async reload(id: ViewId): Promise<void> {
+    await this.views.get(id)?.reload()
+  }
+
+  private stateFor(v: ChromiumView): ViewState {
+    return {
       id: v.id,
       presetId: v.presetId,
       width: v.width,
       height: v.height,
-      url: v.lastUrl
-    }))
+      url: v.lastUrl,
+      canGoBack: v.canGoBack,
+      canGoForward: v.canGoForward
+    }
   }
 
   async navigateAll(url: string): Promise<void> {

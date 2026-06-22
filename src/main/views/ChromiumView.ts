@@ -59,6 +59,14 @@ export class ChromiumView {
     return this.currentUrl
   }
 
+  get canGoBack(): boolean {
+    return this.webContents.navigationHistory.canGoBack()
+  }
+
+  get canGoForward(): boolean {
+    return this.webContents.navigationHistory.canGoForward()
+  }
+
   get width(): number {
     return this.currentPreset.width
   }
@@ -91,6 +99,20 @@ export class ChromiumView {
   async loadURL(url: string): Promise<void> {
     await this.webContents.loadURL(url)
     this.currentUrl = this.webContents.getURL()
+  }
+
+  async goBack(): Promise<void> {
+    if (!this.canGoBack) return
+    await this.runNavigationAction(() => this.webContents.navigationHistory.goBack())
+  }
+
+  async goForward(): Promise<void> {
+    if (!this.canGoForward) return
+    await this.runNavigationAction(() => this.webContents.navigationHistory.goForward())
+  }
+
+  async reload(): Promise<void> {
+    await this.runNavigationAction(() => this.webContents.reload())
   }
 
   async applyScroll(s: ScrollState): Promise<void> {
@@ -155,6 +177,27 @@ export class ChromiumView {
     } catch (err) {
       console.error('applyPreset emulation failed', err)
     }
+  }
+
+  private async runNavigationAction(action: () => void): Promise<void> {
+    await new Promise<void>((resolve) => {
+      let settled = false
+      const finish = (): void => {
+        if (settled) return
+        settled = true
+        clearTimeout(timeout)
+        this.webContents.removeListener('did-finish-load', finish)
+        this.webContents.removeListener('did-fail-load', finish)
+        this.webContents.removeListener('did-stop-loading', finish)
+        this.currentUrl = this.webContents.getURL()
+        resolve()
+      }
+      const timeout = setTimeout(finish, 5000)
+      this.webContents.once('did-finish-load', finish)
+      this.webContents.once('did-fail-load', finish)
+      this.webContents.once('did-stop-loading', finish)
+      action()
+    })
   }
 
   destroy(): void {

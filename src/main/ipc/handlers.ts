@@ -55,6 +55,27 @@ export function registerIpcHandlers(
     return registry.states()
   })
 
+  ipcMain.handle(CH.GO_BACK, async (_e, id: ViewId) => {
+    const registry = getRegistry()
+    if (!registry) throw new Error('no active window')
+    await registry.goBack(id)
+    return registry.states()
+  })
+
+  ipcMain.handle(CH.GO_FORWARD, async (_e, id: ViewId) => {
+    const registry = getRegistry()
+    if (!registry) throw new Error('no active window')
+    await registry.goForward(id)
+    return registry.states()
+  })
+
+  ipcMain.handle(CH.RELOAD, async (_e, id: ViewId) => {
+    const registry = getRegistry()
+    if (!registry) throw new Error('no active window')
+    await registry.reload(id)
+    return registry.states()
+  })
+
   ipcMain.handle(CH.SET_LAYOUT, (_e, rects: Array<{ id: ViewId; rect: Rect }>) => {
     const registry = getRegistry()
     if (!registry) throw new Error('no active window')

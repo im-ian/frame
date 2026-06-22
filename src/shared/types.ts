@@ -16,6 +16,8 @@ export interface ViewState {
   width: number
   height: number
   url: string
+  canGoBack: boolean
+  canGoForward: boolean
 }
 
 export interface Rect {

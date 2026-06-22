@@ -5,6 +5,9 @@ export function useViews(): {
   views: ViewState[]
   addView: (presetId: string) => Promise<void>
   removeView: (id: string) => Promise<void>
+  goBack: (id: string) => Promise<void>
+  goForward: (id: string) => Promise<void>
+  reload: (id: string) => Promise<void>
   reorderViews: (sourceId: string, targetId: string) => void
   refresh: () => Promise<void>
 } {
@@ -20,6 +23,18 @@ export function useViews(): {
 
   const removeView = useCallback(async (id: string) => {
     setViews(await window.frame.removeView(id))
+  }, [])
+
+  const goBack = useCallback(async (id: string) => {
+    setViews(await window.frame.goBack(id))
+  }, [])
+
+  const goForward = useCallback(async (id: string) => {
+    setViews(await window.frame.goForward(id))
+  }, [])
+
+  const reload = useCallback(async (id: string) => {
+    setViews(await window.frame.reload(id))
   }, [])
 
   const reorderViews = useCallback((sourceId: string, targetId: string) => {
@@ -42,8 +57,8 @@ export function useViews(): {
       if (active) setViews(states)
     })
     const offViewsChanged = window.frame.onViewsChanged(setViews)
-    const offNavigated = window.frame.onViewNavigated(({ id, url }) => {
-      setViews((current) => current.map((view) => (view.id === id ? { ...view, url } : view)))
+    const offNavigated = window.frame.onViewNavigated((state) => {
+      setViews((current) => current.map((view) => (view.id === state.id ? state : view)))
     })
     return () => {
       active = false
@@ -52,5 +67,5 @@ export function useViews(): {
     }
   }, [])
 
-  return { views, addView, removeView, reorderViews, refresh }
+  return { views, addView, removeView, goBack, goForward, reload, reorderViews, refresh }
 }

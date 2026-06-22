@@ -51,8 +51,8 @@ function createWindow(): void {
   registry = new ViewRegistry(win.contentView)
   syncBus = new SyncBus(registry)
   registry.setAddedListener((view) => syncBus?.bindWebContentsId(view.id, view.webContentsId))
-  registry.setNavigationListener((id, url) => {
-    uiView?.webContents.send(CH.VIEW_NAVIGATED, { id, url })
+  registry.setNavigationListener((state) => {
+    uiView?.webContents.send(CH.VIEW_NAVIGATED, state)
   })
 
   // Seed default viewports + open a starter page so the window isn't empty.

@@ -3,7 +3,7 @@ import { Toolbar } from './components/Toolbar'
 import { ViewportCanvas } from './components/ViewportCanvas'
 
 function App(): React.JSX.Element {
-  const { views, addView, removeView, reorderViews } = useViews()
+  const { views, addView, removeView, goBack, goForward, reload, reorderViews } = useViews()
   return (
     <div className="app">
       <Toolbar
@@ -14,6 +14,9 @@ function App(): React.JSX.Element {
       <ViewportCanvas
         views={views}
         onRemove={(id) => void removeView(id)}
+        onBack={(id) => void goBack(id)}
+        onForward={(id) => void goForward(id)}
+        onReload={(id) => void reload(id)}
         onReorder={reorderViews}
       />
     </div>

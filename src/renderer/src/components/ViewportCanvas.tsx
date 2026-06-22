@@ -5,6 +5,9 @@ import { DeviceFrame, DeviceFrameDragGhost, DeviceFrameDropPlaceholder } from '.
 interface Props {
   views: ViewState[]
   onRemove: (id: string) => void
+  onBack: (id: string) => void
+  onForward: (id: string) => void
+  onReload: (id: string) => void
   onReorder: (sourceId: string, targetId: string) => void
 }
 
@@ -14,7 +17,14 @@ interface DragGhost {
   y: number
 }
 
-export function ViewportCanvas({ views, onRemove, onReorder }: Props): React.JSX.Element {
+export function ViewportCanvas({
+  views,
+  onRemove,
+  onBack,
+  onForward,
+  onReload,
+  onReorder
+}: Props): React.JSX.Element {
   const slotRefs = useRef(new Map<string, HTMLDivElement>())
   const frameRef = useRef<number | null>(null)
   const canvasRef = useRef<HTMLElement>(null)
@@ -128,6 +138,9 @@ export function ViewportCanvas({ views, onRemove, onReorder }: Props): React.JSX
             <DeviceFrame
               view={v}
               onRemove={onRemove}
+              onBack={onBack}
+              onForward={onForward}
+              onReload={onReload}
               dragging={draggingId === v.id}
               onDragStart={(id, point) => {
                 setDraggingId(id)

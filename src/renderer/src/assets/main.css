@@ -390,7 +390,7 @@ body {
 .device-frame__bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   height: 34px;
   padding: 0 10px 0 14px;
   background: var(--surface-3);
@@ -402,7 +402,49 @@ body {
   cursor: grabbing;
 }
 
+.device-frame__nav {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.device-frame__nav-button {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease;
+}
+
+.device-frame__nav-button:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-1);
+}
+
+.device-frame__nav-button:disabled {
+  cursor: default;
+  opacity: 0.34;
+}
+
 .device-frame__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text-1);
