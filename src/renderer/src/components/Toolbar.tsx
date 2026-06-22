@@ -38,7 +38,7 @@ async function setNativePanesOccluded(occluded: boolean): Promise<void> {
   const views = await frame.listViews()
   const rects = views.map((view) => {
     if (occluded) {
-      return { id: view.id, rect: HIDDEN_NATIVE_VIEW_RECT }
+      return { id: view.id, rect: HIDDEN_NATIVE_VIEW_RECT, scale: 1 }
     }
     const slot = document.querySelector(`[data-view-id="${view.id}"] .device-frame__slot`)
     const bounds = slot?.getBoundingClientRect()
@@ -46,7 +46,8 @@ async function setNativePanesOccluded(occluded: boolean): Promise<void> {
       id: view.id,
       rect: bounds
         ? { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height }
-        : HIDDEN_NATIVE_VIEW_RECT
+        : HIDDEN_NATIVE_VIEW_RECT,
+      scale: 1
     }
   })
   await frame.setLayout(rects)

@@ -7,6 +7,7 @@ import { getFrameSession } from '../session/partition'
 
 const VIEWPORT_PRELOAD = join(__dirname, '../preload/viewport.js')
 const OCCLUDED_BOUNDS: Rect = { x: -10000, y: -10000, width: 1, height: 1 }
+const MIN_DISPLAY_SCALE = 0.1
 
 export class ChromiumView {
   readonly id: ViewId = randomUUID()
@@ -18,6 +19,7 @@ export class ChromiumView {
   private currentUrl = ''
   private currentPreset: DevicePreset
   private currentBounds: Rect
+  private currentDisplayScale = 1
   private occluded = false
   private onNavigatedCb: ((url: string) => void) | null = null
 
@@ -97,6 +99,17 @@ export class ChromiumView {
 
   setBounds(rect: Rect): void {
     this.currentBounds = rect
+    this.applyBounds()
+  }
+
+  setLayout(rect: Rect, scale: number): void {
+    this.currentBounds = rect
+    const nextScale = Math.max(MIN_DISPLAY_SCALE, Number.isFinite(scale) ? scale : 1)
+    const scaleChanged = Math.abs(this.currentDisplayScale - nextScale) > 0.001
+    if (scaleChanged) {
+      this.currentDisplayScale = nextScale
+      void this.applyPreset(this.currentPreset)
+    }
     this.applyBounds()
   }
 
@@ -204,6 +217,7 @@ export class ChromiumView {
   async applyPreset(preset: DevicePreset): Promise<void> {
     this.currentPresetId = preset.id
     this.currentPreset = preset
+    this.webContents.setZoomFactor(1)
     const dbg = this.webContents.debugger
     if (!dbg.isAttached()) {
       try {
@@ -219,6 +233,7 @@ export class ChromiumView {
         height: preset.height,
         deviceScaleFactor: preset.dpr,
         mobile: preset.mobile,
+        scale: this.currentDisplayScale,
         screenOrientation: { type: 'portraitPrimary', angle: 0 }
       })
       await dbg.sendCommand('Emulation.setTouchEmulationEnabled', {

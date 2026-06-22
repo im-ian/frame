@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Rect, ViewId, ViewState, ViewStateUpdate } from '../shared/types'
+import type { ViewId, ViewLayout, ViewState, ViewStateUpdate } from '../shared/types'
 
 const api = {
   addView: (presetId: string): Promise<ViewState[]> =>
@@ -12,8 +12,7 @@ const api = {
   goBack: (id: ViewId): Promise<ViewState[]> => ipcRenderer.invoke('frame:go-back', id),
   goForward: (id: ViewId): Promise<ViewState[]> => ipcRenderer.invoke('frame:go-forward', id),
   reload: (id: ViewId): Promise<ViewState[]> => ipcRenderer.invoke('frame:reload', id),
-  setLayout: (rects: Array<{ id: ViewId; rect: Rect }>): Promise<void> =>
-    ipcRenderer.invoke('frame:set-layout', rects),
+  setLayout: (rects: ViewLayout[]): Promise<void> => ipcRenderer.invoke('frame:set-layout', rects),
   setNativeViewsOccluded: (occluded: boolean): Promise<void> =>
     ipcRenderer.invoke('frame:set-native-views-occluded', occluded),
   setMirror: (on: boolean): Promise<void> => ipcRenderer.invoke('frame:set-mirror', on),

@@ -29,6 +29,12 @@ export interface Rect {
   height: number
 }
 
+export interface ViewLayout {
+  id: ViewId
+  rect: Rect
+  scale: number
+}
+
 export interface ScrollState {
   fx: number
   fy: number

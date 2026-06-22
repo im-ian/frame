@@ -56,6 +56,68 @@ async function nativeViewportBounds(index = 0): Promise<{
   }, index)
 }
 
+async function nativeViewportMetrics(index = 0): Promise<{
+  innerWidth: number
+  innerHeight: number
+  devicePixelRatio: number
+  zoomFactor: number
+}> {
+  return app.evaluate(async ({ BaseWindow }, childIndex) => {
+    const w = BaseWindow.getAllWindows()[0]
+    const view = w.contentView.children[childIndex + 1] as WebContentsView
+    const metrics = (await view.webContents.executeJavaScript(
+      '({ innerWidth: window.innerWidth, innerHeight: window.innerHeight, devicePixelRatio: window.devicePixelRatio })'
+    )) as { innerWidth: number; innerHeight: number; devicePixelRatio: number }
+    return {
+      ...metrics,
+      zoomFactor: view.webContents.getZoomFactor()
+    }
+  }, index)
+}
+
+async function slotBounds(index = 0): Promise<{
+  x: number
+  y: number
+  width: number
+  height: number
+}> {
+  return window.evaluate((slotIndex) => {
+    const slot = document.querySelectorAll('.device-frame__slot')[slotIndex] as HTMLElement
+    const bounds = slot.getBoundingClientRect()
+    return {
+      x: Math.round(bounds.left),
+      y: Math.round(bounds.top),
+      width: Math.round(bounds.width),
+      height: Math.round(bounds.height)
+    }
+  }, index)
+}
+
+async function visibleSlotBounds(index = 0): Promise<{
+  x: number
+  y: number
+  width: number
+  height: number
+}> {
+  return window.evaluate((slotIndex) => {
+    const slot = document.querySelectorAll('.device-frame__slot')[slotIndex] as HTMLElement
+    const canvas = document.querySelector('[data-testid="canvas"]') as HTMLElement
+    const slotRect = slot.getBoundingClientRect()
+    const canvasRect = canvas.getBoundingClientRect()
+    const x = Math.max(slotRect.left, canvasRect.left)
+    const y = Math.max(slotRect.top, canvasRect.top)
+    const right = Math.min(slotRect.right, canvasRect.right)
+    const bottom = Math.min(slotRect.bottom, canvasRect.bottom)
+
+    return {
+      x: Math.round(x),
+      y: Math.round(y),
+      width: Math.round(right - x),
+      height: Math.round(bottom - y)
+    }
+  }, index)
+}
+
 test('toolbar controls are present', async () => {
   await expect(window.getByTestId('url-input')).toBeVisible()
   await expect(window.getByTestId('add-view')).toBeVisible()
@@ -162,7 +224,28 @@ test('close button removes a device frame', async () => {
   await expect(window.getByTestId('device-frame')).toHaveCount(0)
 })
 
-test('dragging a device frame shows a ghost preview', async () => {
+test('dragging a device frame moves it on the grid', async () => {
+  await addCustomView(390, 844)
+
+  const frame = window.getByTestId('device-frame')
+  const before = await frame.boundingBox()
+  const handle = await window.getByTestId('device-frame-drag-handle').boundingBox()
+  if (!before || !handle) throw new Error('missing frame or drag handle')
+
+  await window.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2)
+  await window.mouse.down()
+  await window.mouse.move(handle.x + handle.width / 2 + 73, handle.y + handle.height / 2 + 61, {
+    steps: 8
+  })
+  await window.mouse.up()
+
+  const after = await frame.boundingBox()
+  if (!after) throw new Error('missing frame after drag')
+  expect(Math.round(after.x - before.x)).toBe(72)
+  expect(Math.round(after.y - before.y)).toBe(72)
+})
+
+test('dragged device frame keeps the native pane aligned to its slot', async () => {
   await addCustomView(390, 844)
 
   const handle = await window.getByTestId('device-frame-drag-handle').boundingBox()
@@ -170,59 +253,79 @@ test('dragging a device frame shows a ghost preview', async () => {
 
   await window.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2)
   await window.mouse.down()
-  await window.mouse.move(handle.x + handle.width / 2 + 24, handle.y + handle.height / 2 + 18)
-
-  const ghost = window.getByTestId('device-frame-drag-ghost')
-  await expect(ghost).toBeVisible()
-  await expect(ghost).toContainText('Custom')
-  await expect(ghost).toContainText('390 × 844')
-
+  await window.mouse.move(handle.x + handle.width / 2 + 96, handle.y + handle.height / 2 + 48, {
+    steps: 8
+  })
   await window.mouse.up()
-  await expect(ghost).toHaveCount(0)
+
+  await expect.poll(() => nativeViewportBounds()).toEqual(await visibleSlotBounds())
 })
 
-test('dragging over a device frame shows a drop placeholder', async () => {
+test('new device frames are placed on the canvas without overlap', async () => {
   await addCustomView(390, 844)
   await addCustomView(768, 1024)
 
-  const source = await window.getByTestId('device-frame-drag-handle').nth(1).boundingBox()
-  const target = await window.getByTestId('device-frame-drag-handle').first().boundingBox()
-  if (!source || !target) throw new Error('missing drag handles')
-
-  await window.mouse.move(source.x + source.width / 2, source.y + source.height / 2)
-  await window.mouse.down()
-  await window.mouse.move(target.x + target.width / 2, target.y + target.height / 2, {
-    steps: 8
-  })
-
-  const placeholder = window.getByTestId('device-frame-drop-placeholder')
-  await expect(placeholder).toBeVisible()
-
-  const placeholderBox = await placeholder.boundingBox()
   const firstFrameBox = await window.getByTestId('device-frame').first().boundingBox()
-  if (!placeholderBox || !firstFrameBox) throw new Error('missing placeholder or frame box')
-  expect(placeholderBox.x).toBeLessThan(firstFrameBox.x)
+  const secondFrameBox = await window.getByTestId('device-frame').nth(1).boundingBox()
+  if (!firstFrameBox || !secondFrameBox) throw new Error('missing frame boxes')
 
-  await window.mouse.up()
-  await expect(placeholder).toHaveCount(0)
+  const overlap =
+    firstFrameBox.x < secondFrameBox.x + secondFrameBox.width &&
+    firstFrameBox.x + firstFrameBox.width > secondFrameBox.x &&
+    firstFrameBox.y < secondFrameBox.y + secondFrameBox.height &&
+    firstFrameBox.y + firstFrameBox.height > secondFrameBox.y
+  expect(overlap).toBe(false)
 })
 
-test('device frames can be dragged into a new order', async () => {
+test('zoom controls scale the canvas and native pane bounds', async () => {
   await addCustomView(390, 844)
-  await addCustomView(768, 1024)
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
 
-  await expect(window.getByTestId('device-frame').first()).toContainText('390 × 844')
+  const before = await slotBounds()
+  await window.getByTestId('zoom-out').click()
+  await expect(window.getByTestId('zoom-reset')).toHaveText('89%')
 
-  const source = await window.getByTestId('device-frame-drag-handle').nth(1).boundingBox()
-  const target = await window.getByTestId('device-frame-drag-handle').first().boundingBox()
-  if (!source || !target) throw new Error('missing drag handles')
+  const after = await slotBounds()
+  expect(after.width).toBeLessThan(before.width)
+  expect(after.height).toBeLessThan(before.height)
 
-  await window.mouse.move(source.x + source.width / 2, source.y + source.height / 2)
-  await window.mouse.down()
-  await window.mouse.move(target.x + target.width / 2, target.y + target.height / 2, {
-    steps: 8
-  })
-  await window.mouse.up()
+  await expect.poll(() => nativeViewportBounds()).toEqual(await visibleSlotBounds())
+})
 
-  await expect(window.getByTestId('device-frame').first()).toContainText('768 × 1024')
+test('rapid zoom keeps the native pane matched to the final size', async () => {
+  await addCustomView(1024, 768)
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
+
+  for (let i = 0; i < 7; i += 1) {
+    await window.getByTestId('zoom-out').click()
+  }
+  await expect(window.getByTestId('zoom-reset')).toHaveText('45%')
+
+  await expect.poll(() => nativeViewportBounds()).toEqual(await visibleSlotBounds())
+})
+
+test('zooming out scales the page without changing its emulated viewport', async () => {
+  await addCustomView(1024, 768)
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
+
+  for (let i = 0; i < 7; i += 1) {
+    await window.getByTestId('zoom-out').click()
+  }
+  await expect(window.getByTestId('zoom-reset')).toHaveText('45%')
+
+  await expect
+    .poll(async () => {
+      const metrics = await nativeViewportMetrics()
+      return {
+        ...metrics,
+        devicePixelRatio: Math.round(metrics.devicePixelRatio * 1000) / 1000,
+        zoomFactor: Math.round(metrics.zoomFactor * 1000) / 1000
+      }
+    })
+    .toEqual({
+      innerWidth: 1024,
+      innerHeight: 768,
+      devicePixelRatio: 1,
+      zoomFactor: 1
+    })
 })

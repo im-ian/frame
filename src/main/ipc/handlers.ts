@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import type { Rect, ViewId } from '../../shared/types'
+import type { ViewId, ViewLayout } from '../../shared/types'
 import { findPreset, parseCustomPreset } from '../../shared/presets'
 import { normalizeNavigationUrl } from '../../shared/navigation'
 import type { ViewRegistry } from '../views/ViewRegistry'
@@ -85,10 +85,10 @@ export function registerIpcHandlers(
     return registry.states()
   })
 
-  ipcMain.handle(CH.SET_LAYOUT, (_e, rects: Array<{ id: ViewId; rect: Rect }>) => {
+  ipcMain.handle(CH.SET_LAYOUT, (_e, rects: ViewLayout[]) => {
     const registry = getRegistry()
     if (!registry) throw new Error('no active window')
-    for (const { id, rect } of rects) registry.get(id)?.setBounds(rect)
+    for (const { id, rect, scale } of rects) registry.get(id)?.setLayout(rect, scale)
   })
 
   ipcMain.handle(CH.SET_NATIVE_VIEWS_OCCLUDED, (_e, occluded: boolean) => {

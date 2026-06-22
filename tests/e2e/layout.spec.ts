@@ -21,15 +21,21 @@ test('native view bounds follow the measured slot rect', async () => {
   await window.evaluate(() => window.frame.addCustomView('Custom', 414, 896))
   await expect(window.getByTestId('device-frame')).toHaveCount(1)
 
-  // slot의 DOM rect
+  // canvas 안에서 실제로 보이는 slot rect
   const slot = await window.evaluate(() => {
     const el = document.querySelector('.device-frame__slot') as HTMLElement
-    const r = el.getBoundingClientRect()
+    const canvas = document.querySelector('[data-testid="canvas"]') as HTMLElement
+    const slotRect = el.getBoundingClientRect()
+    const canvasRect = canvas.getBoundingClientRect()
+    const x = Math.max(slotRect.left, canvasRect.left)
+    const y = Math.max(slotRect.top, canvasRect.top)
+    const right = Math.min(slotRect.right, canvasRect.right)
+    const bottom = Math.min(slotRect.bottom, canvasRect.bottom)
     return {
-      x: Math.round(r.left),
-      y: Math.round(r.top),
-      w: Math.round(r.width),
-      h: Math.round(r.height)
+      x: Math.round(x),
+      y: Math.round(y),
+      w: Math.round(right - x),
+      h: Math.round(bottom - y)
     }
   })
 
