@@ -77,3 +77,22 @@ test('url input accepts hosts without a scheme', async () => {
 
   await expect(window.getByTestId('url-input')).toHaveValue(`http://${baseUrl}/short`)
 })
+
+test('navigation events preserve viewport metadata when only URL changes', async () => {
+  await window.getByTestId('preset-select').selectOption('ipad')
+  await window.getByTestId('add-view').click()
+  await expect(window.getByTestId('device-frame')).toContainText('iPad')
+
+  const [state] = await window.evaluate(() => window.frame.listViews())
+  await app.evaluate(
+    async ({ BaseWindow }, payload) => {
+      const w = BaseWindow.getAllWindows()[0]
+      const uiView = w.contentView.children[0] as WebContentsView
+      uiView.webContents.send('frame:view-navigated', payload)
+    },
+    { id: state.id, url: 'https://example.com' }
+  )
+
+  await expect(window.getByTestId('device-frame')).toContainText('iPad')
+  await expect(window.getByTestId('device-frame')).not.toContainText('Custom')
+})
