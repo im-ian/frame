@@ -2,7 +2,10 @@ import { useEffect, useState, useCallback } from 'react'
 import type { ViewState, ViewStateUpdate } from '../../../shared/types'
 
 function mergeViewStateUpdate(current: ViewState[], update: ViewStateUpdate): ViewState[] {
-  return current.map((view) => (view.id === update.id ? { ...view, ...update } : view))
+  const definedUpdate = Object.fromEntries(
+    Object.entries(update).filter(([, value]) => value !== undefined && value !== null)
+  ) as ViewStateUpdate
+  return current.map((view) => (view.id === update.id ? { ...view, ...definedUpdate } : view))
 }
 
 export function useViews(): {
@@ -57,12 +60,19 @@ export function useViews(): {
 
   useEffect(() => {
     let active = true
+    const syncViews = (): void => {
+      void window.frame.listViews().then((states) => {
+        if (active) setViews(states)
+      })
+    }
+
     void window.frame.listViews().then((states) => {
       if (active) setViews(states)
     })
     const offViewsChanged = window.frame.onViewsChanged(setViews)
     const offNavigated = window.frame.onViewNavigated((state) => {
       setViews((current) => mergeViewStateUpdate(current, state))
+      syncViews()
     })
     return () => {
       active = false
