@@ -140,6 +140,151 @@ body {
   gap: 8px;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 62px 14px 0;
+  background: rgba(0, 0, 0, 0.46);
+}
+
+.add-view-modal {
+  width: min(320px, calc(100vw - 28px));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-frame);
+  padding: 14px;
+}
+
+.add-view-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.add-view-modal__title {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 650;
+}
+
+.add-view-modal__close {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.add-view-modal__close:hover {
+  color: var(--text-1);
+  background: var(--surface-3);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 2px;
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.segmented__button {
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segmented__button:hover {
+  color: var(--text-1);
+}
+
+.segmented__button--active {
+  color: var(--text-1);
+  background: var(--surface-3);
+}
+
+.add-view-modal__control {
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.viewport-size.add-view-modal__control {
+  display: flex;
+}
+
+.viewport-size.add-view-modal__control .viewport-size__input {
+  flex: 1 1 0;
+  width: 0;
+}
+
+.add-view-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.viewport-size {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  overflow: hidden;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.viewport-size:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.viewport-size__input {
+  width: 76px;
+  height: 32px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-1);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: center;
+}
+
+.viewport-size__input::-webkit-outer-spin-button,
+.viewport-size__input::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.viewport-size__separator {
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1;
+}
+
 .select {
   height: 34px;
   padding: 0 10px;
@@ -176,6 +321,16 @@ body {
   background: var(--surface-3);
 }
 
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.btn:disabled:hover {
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+
 .btn--accent {
   border-color: transparent;
   background: var(--accent-soft);
@@ -184,6 +339,11 @@ body {
 
 .btn--accent:hover {
   background: rgba(124, 108, 246, 0.26);
+}
+
+.btn--accent:disabled:hover {
+  border-color: transparent;
+  background: var(--accent-soft);
 }
 
 /* ---------- Mirror switch ---------- */

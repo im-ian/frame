@@ -3,12 +3,14 @@ import { Toolbar } from './components/Toolbar'
 import { ViewportCanvas } from './components/ViewportCanvas'
 
 function App(): React.JSX.Element {
-  const { views, addView, removeView, goBack, goForward, reload, reorderViews } = useViews()
+  const { views, addView, addCustomView, removeView, goBack, goForward, reload, reorderViews } =
+    useViews()
   return (
     <div className="app">
       <Toolbar
         onNavigate={(url) => void window.frame.navigateAll(url)}
-        onAddView={(presetId) => void addView(presetId)}
+        onAddPresetView={(presetId) => void addView(presetId)}
+        onAddCustomView={(width, height) => void addCustomView(width, height)}
         onToggleMirror={(on) => void window.frame.setMirror(on)}
       />
       <ViewportCanvas

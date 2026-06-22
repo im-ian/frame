@@ -11,6 +11,7 @@ function mergeViewStateUpdate(current: ViewState[], update: ViewStateUpdate): Vi
 export function useViews(): {
   views: ViewState[]
   addView: (presetId: string) => Promise<void>
+  addCustomView: (width: number, height: number) => Promise<void>
   removeView: (id: string) => Promise<void>
   goBack: (id: string) => Promise<void>
   goForward: (id: string) => Promise<void>
@@ -26,6 +27,10 @@ export function useViews(): {
 
   const addView = useCallback(async (presetId: string) => {
     setViews(await window.frame.addView(presetId))
+  }, [])
+
+  const addCustomView = useCallback(async (width: number, height: number) => {
+    setViews(await window.frame.addCustomView('Custom', width, height))
   }, [])
 
   const removeView = useCallback(async (id: string) => {
@@ -81,5 +86,15 @@ export function useViews(): {
     }
   }, [])
 
-  return { views, addView, removeView, goBack, goForward, reload, reorderViews, refresh }
+  return {
+    views,
+    addView,
+    addCustomView,
+    removeView,
+    goBack,
+    goForward,
+    reload,
+    reorderViews,
+    refresh
+  }
 }
