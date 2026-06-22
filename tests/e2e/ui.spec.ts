@@ -1,5 +1,6 @@
 import { test, expect, _electron as electron } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
+import type { WebContentsView } from 'electron'
 import path from 'node:path'
 
 let app: ElectronApplication
@@ -36,6 +37,28 @@ async function addCustomView(width: number, height: number): Promise<void> {
   await window.getByTestId('confirm-add-view').click()
 }
 
+async function nativeViewportBounds(index = 0): Promise<{
+  x: number
+  y: number
+  width: number
+  height: number
+}> {
+  return app.evaluate(
+    async ({ BaseWindow }, childIndex) => {
+      const w = BaseWindow.getAllWindows()[0]
+      const view = w.contentView.children[childIndex + 1] as WebContentsView
+      const bounds = view.getBounds()
+      return {
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height
+      }
+    },
+    index
+  )
+}
+
 test('toolbar controls are present', async () => {
   await expect(window.getByTestId('url-input')).toBeVisible()
   await expect(window.getByTestId('add-view')).toBeVisible()
@@ -55,6 +78,24 @@ test('add view modal supports presets and custom pixels', async () => {
   await expect(window.getByTestId('viewport-width')).toBeVisible()
   await expect(window.getByTestId('viewport-height')).toBeVisible()
   await expect(window.getByTestId('preset-select')).toHaveCount(0)
+})
+
+test('add view modal keeps native panes behind the overlay', async () => {
+  await window.evaluate(() => window.frame.addCustomView('Custom', 1200, 900))
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
+  const visibleBounds = await nativeViewportBounds()
+  expect(visibleBounds.width).toBeGreaterThan(1)
+
+  await openAddViewModal()
+  await expect.poll(() => nativeViewportBounds()).toEqual({
+    x: -10000,
+    y: -10000,
+    width: 1,
+    height: 1
+  })
+
+  await window.getByRole('button', { name: 'Close add view modal' }).click()
+  await expect.poll(() => nativeViewportBounds()).toEqual(visibleBounds)
 })
 
 test('adding a preset from the modal renders a preset device frame', async () => {
