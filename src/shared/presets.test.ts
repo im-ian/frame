@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { DEFAULT_PRESETS, findPreset, parseCustomPreset } from './presets'
+import { DEFAULT_PRESET_GROUPS, DEFAULT_PRESETS, findPreset, parseCustomPreset } from './presets'
 
 describe('DEFAULT_PRESETS', () => {
   it('includes desktop, tablet, and mobile presets with unique ids', () => {
     const ids = DEFAULT_PRESETS.map((p) => p.id)
     expect(new Set(ids).size).toBe(ids.length)
     expect(ids).toEqual(expect.arrayContaining(['desktop-1440', 'ipad', 'iphone-14']))
+    expect(ids.length).toBeGreaterThanOrEqual(20)
   })
 
   it('mobile presets carry a mobile flag and a Mobile UA', () => {
@@ -13,6 +14,19 @@ describe('DEFAULT_PRESETS', () => {
     expect(iphone.mobile).toBe(true)
     expect(iphone.userAgent).toMatch(/Mobile/)
     expect(iphone.dpr).toBeGreaterThan(1)
+  })
+})
+
+describe('DEFAULT_PRESET_GROUPS', () => {
+  it('groups presets under select headers', () => {
+    expect(DEFAULT_PRESET_GROUPS.map((group) => group.label)).toEqual([
+      'Phones',
+      'Tablets',
+      'Laptops',
+      'Desktops'
+    ])
+    expect(DEFAULT_PRESET_GROUPS.every((group) => group.presets.length > 0)).toBe(true)
+    expect(DEFAULT_PRESET_GROUPS.flatMap((group) => group.presets)).toEqual(DEFAULT_PRESETS)
   })
 })
 

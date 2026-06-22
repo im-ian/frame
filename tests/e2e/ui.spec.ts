@@ -70,6 +70,23 @@ test('add view modal supports presets and custom pixels', async () => {
   await expect(window.getByTestId('preset-select')).toBeVisible()
   await expect(window.getByTestId('viewport-width')).toHaveCount(0)
 
+  const presetGroups = await window.getByTestId('preset-select').evaluate((select) =>
+    [...select.querySelectorAll('optgroup')].map((group) => ({
+      label: group.label,
+      values: [...group.querySelectorAll('option')].map((option) => option.value)
+    }))
+  )
+  expect(presetGroups.map((group) => group.label)).toEqual([
+    'Phones',
+    'Tablets',
+    'Laptops',
+    'Desktops'
+  ])
+  expect(presetGroups.flatMap((group) => group.values).length).toBeGreaterThanOrEqual(20)
+  expect(presetGroups.flatMap((group) => group.values)).toEqual(
+    expect.arrayContaining(['iphone-15-pro-max', 'pixel-8-pro', 'ipad-pro-129', 'desktop-1920'])
+  )
+
   await window.getByTestId('mode-custom').click()
   await expect(window.getByTestId('mode-custom')).toHaveAttribute('aria-pressed', 'true')
   await expect(window.getByTestId('viewport-width')).toBeVisible()
