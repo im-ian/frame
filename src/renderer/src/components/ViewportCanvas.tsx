@@ -1,16 +1,27 @@
 import { useRef, useEffect, useCallback, useLayoutEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { Rect, ViewLayout, ViewState } from '../../../shared/types'
+import type {
+  PaneGroupId,
+  PaneGroupState,
+  ProjectId,
+  Rect,
+  ViewLayout,
+  ViewState
+} from '../../../shared/types'
 import type { ViewPositions } from '../state/useViews'
 import { DeviceFrame } from './DeviceFrame'
 
 interface Props {
   views: ViewState[]
+  groups: PaneGroupState[]
+  activeProjectId: ProjectId | null
+  activeGroupId: PaneGroupId | null
   viewPositions: ViewPositions
   onRemove: (id: string) => void
   onBack: (id: string) => void
   onForward: (id: string) => void
   onReload: (id: string) => void
+  onNavigateGroup: (id: PaneGroupId, url: string) => void
   onMove: (id: string, x: number, y: number) => void
 }
 
@@ -36,6 +47,8 @@ const GRID_SIZE = 24
 const FRAME_BAR_HEIGHT = 34
 const FRAME_BORDER_WIDTH = 1
 const WORLD_EDGE_PADDING = 96
+const GROUP_PADDING = 28
+const GROUP_LABEL_HEIGHT = 44
 const WORLD_MIN_WIDTH = 0
 const WORLD_MIN_HEIGHT = 0
 const FALLBACK_POSITION = { x: WORLD_EDGE_PADDING, y: WORLD_EDGE_PADDING }
@@ -63,11 +76,15 @@ function intersectRect(a: Rect, b: Rect): Rect | null {
 
 export function ViewportCanvas({
   views,
+  groups,
+  activeProjectId,
+  activeGroupId,
   viewPositions,
   onRemove,
   onBack,
   onForward,
   onReload,
+  onNavigateGroup,
   onMove
 }: Props): React.JSX.Element {
   const frameRef = useRef<number | null>(null)
@@ -75,6 +92,57 @@ export function ViewportCanvas({
   const [zoom, setZoom] = useState(1)
   const [dragState, setDragState] = useState<DragState | null>(null)
   const [panState, setPanState] = useState<PanState | null>(null)
+  const visibleViews = useMemo(
+    () => views.filter((view) => view.projectId === activeProjectId),
+    [activeProjectId, views]
+  )
+  const visibleGroups = useMemo(
+    () => groups.filter((group) => group.projectId === activeProjectId),
+    [activeProjectId, groups]
+  )
+  const groupBounds = useMemo(
+    () =>
+      visibleGroups
+        .map((group) => {
+          const groupViews = visibleViews.filter((view) => view.groupId === group.id)
+          if (groupViews.length === 0) return null
+          const bounds = groupViews.reduce(
+            (acc, view) => {
+              const position = viewPositions[view.id] ?? FALLBACK_POSITION
+              return {
+                left: Math.min(acc.left, position.x),
+                top: Math.min(acc.top, position.y),
+                right: Math.max(acc.right, position.x + view.width),
+                bottom: Math.max(acc.bottom, position.y + view.height + FRAME_BAR_HEIGHT)
+              }
+            },
+            {
+              left: Number.POSITIVE_INFINITY,
+              top: Number.POSITIVE_INFINITY,
+              right: 0,
+              bottom: 0
+            }
+          )
+          return {
+            group,
+            rect: {
+              x: Math.max(0, bounds.left - GROUP_PADDING),
+              y: Math.max(0, bounds.top - GROUP_PADDING - GROUP_LABEL_HEIGHT),
+              width: bounds.right - bounds.left + GROUP_PADDING * 2,
+              height: bounds.bottom - bounds.top + GROUP_PADDING * 2 + GROUP_LABEL_HEIGHT
+            }
+          }
+        })
+        .filter(
+          (
+            item
+          ): item is {
+            group: PaneGroupState
+            rect: { x: number; y: number; width: number; height: number }
+          } => item != null
+        ),
+    [viewPositions, visibleGroups, visibleViews]
+  )
 
   const publishLayout = useCallback(() => {
     const canvas = canvasRef.current
@@ -88,6 +156,10 @@ export function ViewportCanvas({
       height: canvasBounds.height
     }
     const rects: ViewLayout[] = views.map((view) => {
+      if (view.projectId !== activeProjectId) {
+        return { id: view.id, rect: HIDDEN_NATIVE_VIEW_RECT, scale: zoom }
+      }
+
       const position = viewPositions[view.id] ?? FALLBACK_POSITION
       const rawRect: Rect = {
         x: canvasBounds.left - canvas.scrollLeft + (position.x + FRAME_BORDER_WIDTH) * zoom,
@@ -120,7 +192,7 @@ export function ViewportCanvas({
         }
       })
     )
-  }, [viewPositions, views, zoom])
+  }, [activeProjectId, viewPositions, views, zoom])
 
   const reportLayout = useCallback(() => {
     if (frameRef.current != null) return
@@ -157,8 +229,16 @@ export function ViewportCanvas({
     [reportLayout]
   )
 
+  const zoomForWheel = useCallback(
+    (deltaY: number, anchor: { x: number; y: number }) => {
+      const factor = deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP
+      zoomAt(zoom * factor, anchor)
+    },
+    [zoom, zoomAt]
+  )
+
   const worldSize = useMemo(() => {
-    const bounds = views.reduce(
+    const bounds = visibleViews.reduce(
       (acc, view) => {
         const position = viewPositions[view.id] ?? FALLBACK_POSITION
         return {
@@ -176,7 +256,7 @@ export function ViewportCanvas({
       width: Math.ceil(bounds.width / GRID_SIZE) * GRID_SIZE,
       height: Math.ceil(bounds.height / GRID_SIZE) * GRID_SIZE
     }
-  }, [viewPositions, views])
+  }, [viewPositions, visibleViews])
 
   useEffect(() => {
     reportLayout()
@@ -187,23 +267,26 @@ export function ViewportCanvas({
       if (!canvas) return
       if (event.ctrlKey || event.metaKey) {
         event.preventDefault()
-        const factor = event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP
-        zoomAt(zoom * factor, { x: event.clientX, y: event.clientY })
+        zoomForWheel(event.deltaY, { x: event.clientX, y: event.clientY })
       }
     }
 
     canvas?.addEventListener('scroll', reportLayout)
     canvas?.addEventListener('wheel', onWheel, { passive: false })
+    const offCanvasZoomWheel = window.frame.onCanvasZoomWheel((wheel) => {
+      zoomForWheel(wheel.deltaY, { x: wheel.x, y: wheel.y })
+    })
     return () => {
       window.removeEventListener('resize', reportLayout)
       canvas?.removeEventListener('scroll', reportLayout)
       canvas?.removeEventListener('wheel', onWheel)
+      offCanvasZoomWheel()
       if (frameRef.current != null) {
         cancelAnimationFrame(frameRef.current)
         frameRef.current = null
       }
     }
-  }, [reportLayout, zoom, zoomAt])
+  }, [reportLayout, zoomForWheel])
 
   useLayoutEffect(() => {
     publishLayout()
@@ -286,7 +369,9 @@ export function ViewportCanvas({
       onPointerDown={(event) => {
         const target = event.target
         const isFrameEvent = target instanceof Element && target.closest('.device-frame')
-        const isControlEvent = target instanceof Element && target.closest('.canvas-controls')
+        const isControlEvent =
+          target instanceof Element &&
+          (target.closest('.canvas-controls') || target.closest('.canvas__group-address'))
         if (isFrameEvent || isControlEvent) return
         if (event.button !== 0 && event.button !== 1) return
         event.preventDefault()
@@ -298,10 +383,10 @@ export function ViewportCanvas({
         })
       }}
     >
-      {views.length === 0 && (
+      {visibleViews.length === 0 && (
         <div className="canvas__empty">
-          <strong>No viewports yet</strong>
-          <span>Pick a device and hit “+ View” to start.</span>
+          <strong>No panes in this project</strong>
+          <span>Create a group, then use “+ Pane”.</span>
         </div>
       )}
       <div
@@ -322,7 +407,17 @@ export function ViewportCanvas({
             transform: `scale(${zoom})`
           }}
         >
-          {views.map((view) => {
+          {groupBounds.map(({ group, rect }) => (
+            <div
+              className={`canvas__group${group.id === activeGroupId ? ' canvas__group--active' : ''}`}
+              data-testid="canvas-group"
+              key={group.id}
+              style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}
+            >
+              <GroupAddress group={group} onNavigate={onNavigateGroup} />
+            </div>
+          ))}
+          {visibleViews.map((view) => {
             const position = viewPositions[view.id] ?? FALLBACK_POSITION
             return (
               <div
@@ -384,5 +479,54 @@ export function ViewportCanvas({
         </button>
       </div>
     </section>
+  )
+}
+
+function GroupAddress({
+  group,
+  onNavigate
+}: {
+  group: PaneGroupState
+  onNavigate: (id: PaneGroupId, url: string) => void
+}): React.JSX.Element {
+  const [draft, setDraft] = useState<{
+    groupId: PaneGroupId
+    sourceUrl: string
+    value: string
+  } | null>(null)
+  const value =
+    draft?.groupId === group.id && draft.sourceUrl === group.url ? draft.value : group.url
+
+  const submit = (): void => {
+    const nextUrl = value.trim()
+    if (!nextUrl || nextUrl === group.url) return
+    onNavigate(group.id, nextUrl)
+  }
+
+  return (
+    <form
+      className="canvas__group-address"
+      data-testid="group-address"
+      onSubmit={(event) => {
+        event.preventDefault()
+        submit()
+      }}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <span className="canvas__group-label">{group.name}</span>
+      <input
+        className="canvas__group-url"
+        data-testid="group-url-input"
+        aria-label={`${group.name} URL`}
+        value={value}
+        placeholder="about:blank"
+        onChange={(event) =>
+          setDraft({ groupId: group.id, sourceUrl: group.url, value: event.target.value })
+        }
+      />
+      <button className="canvas__group-go" type="submit" data-testid="group-url-go">
+        Go
+      </button>
+    </form>
   )
 }

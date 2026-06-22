@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_PRESET_GROUPS, DEFAULT_PRESETS } from '../../../shared/presets'
-import { DEFAULT_START_URL } from '../../../shared/defaults'
-import { normalizeNavigationUrl } from '../../../shared/navigation'
+import type { PaneGroupId, PaneGroupState, ProjectId, ProjectState } from '../../../shared/types'
 
 interface Props {
-  onNavigate: (url: string) => void
+  projects: ProjectState[]
+  groups: PaneGroupState[]
+  activeProjectId: ProjectId | null
+  activeGroupId: PaneGroupId | null
+  onSelectProject: (id: ProjectId) => void
+  onSelectGroup: (id: PaneGroupId) => void
+  onAddProject: () => void
+  onAddGroup: () => void
   onAddPresetView: (presetId: string) => void
   onAddCustomView: (width: number, height: number) => void
-  onToggleMirror: (on: boolean) => void
 }
 
 type AddMode = 'preset' | 'custom'
@@ -54,14 +59,19 @@ async function setNativePanesOccluded(occluded: boolean): Promise<void> {
 }
 
 export function Toolbar({
-  onNavigate,
+  projects,
+  groups,
+  activeProjectId,
+  activeGroupId,
+  onSelectProject,
+  onSelectGroup,
+  onAddProject,
+  onAddGroup,
   onAddPresetView,
-  onAddCustomView,
-  onToggleMirror
+  onAddCustomView
 }: Props): React.JSX.Element {
-  const [url, setUrl] = useState(DEFAULT_START_URL)
-  const [mirror, setMirror] = useState(false)
   const [addingView, setAddingView] = useState(false)
+  const projectGroups = groups.filter((group) => group.projectId === activeProjectId)
 
   useEffect(() => {
     return () => {
@@ -79,13 +89,6 @@ export function Toolbar({
     await setNativePanesOccluded(false)
   }
 
-  const submitUrl = (): void => {
-    const normalized = normalizeNavigationUrl(url)
-    if (!normalized) return
-    setUrl(normalized)
-    onNavigate(normalized)
-  }
-
   return (
     <header className="toolbar">
       <div className="brand">
@@ -93,45 +96,63 @@ export function Toolbar({
         frame
       </div>
 
-      <div className="urlbar">
-        <input
-          className="urlbar__input"
-          data-testid="url-input"
-          value={url}
-          placeholder="Enter a URL"
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') submitUrl()
-          }}
-        />
-        <button className="urlbar__go" data-testid="go" onClick={submitUrl}>
-          Go
-        </button>
+      <div className="toolbar__projects" role="tablist" aria-label="Projects">
+        {projects.map((project) => {
+          const active = project.id === activeProjectId
+          return (
+            <button
+              key={project.id}
+              className={`project-tab${active ? ' project-tab--active' : ''}`}
+              data-testid="project-tab"
+              data-project-id={project.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => onSelectProject(project.id)}
+            >
+              {project.name}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="toolbar__groups" role="listbox" aria-label="Pane groups">
+        {projectGroups.map((group) => {
+          const active = group.id === activeGroupId
+          return (
+            <button
+              key={group.id}
+              className={`group-chip${active ? ' group-chip--active' : ''}`}
+              data-testid="group-tab"
+              data-group-id={group.id}
+              type="button"
+              role="option"
+              aria-selected={active}
+              onClick={() => onSelectGroup(group.id)}
+              title={group.url}
+            >
+              {group.name}
+            </button>
+          )
+        })}
       </div>
 
       <div className="toolbar__actions">
+        <button className="btn" data-testid="add-project" type="button" onClick={onAddProject}>
+          + Project
+        </button>
+        <button className="btn" data-testid="add-group" type="button" onClick={onAddGroup}>
+          + Group
+        </button>
         <button
           className="btn btn--accent"
           data-testid="add-view"
+          type="button"
+          disabled={!activeProjectId || !activeGroupId}
           onClick={() => void setAddViewModalOpen(true)}
         >
-          + View
+          + Pane
         </button>
-        <label className="switch" data-testid="mirror-toggle">
-          <input
-            className="switch__input"
-            type="checkbox"
-            checked={mirror}
-            onChange={(e) => {
-              setMirror(e.target.checked)
-              onToggleMirror(e.target.checked)
-            }}
-          />
-          <span className="switch__track" aria-hidden="true">
-            <span className="switch__thumb" />
-          </span>
-          <span className="switch__text">Mirror</span>
-        </label>
       </div>
 
       {addingView && (
@@ -186,15 +207,15 @@ function AddViewModal({
         data-testid="add-view-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Add viewport"
+        aria-label="Add pane"
       >
         <div className="add-view-modal__header">
-          <h2 className="add-view-modal__title">Add View</h2>
+          <h2 className="add-view-modal__title">Add Pane</h2>
           <button
             className="add-view-modal__close"
             type="button"
             onClick={onClose}
-            aria-label="Close add view modal"
+            aria-label="Close add pane modal"
           >
             ✕
           </button>
@@ -283,7 +304,7 @@ function AddViewModal({
             disabled={!canAdd}
             onClick={submit}
           >
-            Add View
+            Add Pane
           </button>
         </div>
       </section>

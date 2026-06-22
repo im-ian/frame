@@ -1,5 +1,13 @@
-import { useEffect, useState, useCallback } from 'react'
-import type { ViewState, ViewStateUpdate } from '../../../shared/types'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import type {
+  PaneGroupId,
+  PaneGroupState,
+  ProjectId,
+  ProjectState,
+  ViewState,
+  ViewStateUpdate,
+  WorkspaceState
+} from '../../../shared/types'
 
 export interface ViewPosition {
   x: number
@@ -40,6 +48,7 @@ function nextAvailablePosition(
   const occupied = Object.entries(positions)
     .map(([id, position]) => {
       const placedView = views.find((candidate) => candidate.id === id)
+      if (placedView?.projectId !== view.projectId) return null
       if (!placedView) return null
       return {
         x: position.x - DEFAULT_GAP,
@@ -95,70 +104,135 @@ function reconcileViewPositions(
   return changed ? nextPositions : currentPositions
 }
 
-export function useViews(): {
+const EMPTY_WORKSPACE: WorkspaceState = { projects: [], groups: [], views: [] }
+
+export function useWorkspace(): {
+  projects: ProjectState[]
+  groups: PaneGroupState[]
   views: ViewState[]
+  activeProjectId: ProjectId | null
+  activeGroupId: PaneGroupId | null
   viewPositions: ViewPositions
+  addProject: () => Promise<void>
+  addGroup: () => Promise<void>
+  selectProject: (id: ProjectId) => void
+  selectGroup: (id: PaneGroupId) => void
   addView: (presetId: string) => Promise<void>
   addCustomView: (width: number, height: number) => Promise<void>
   removeView: (id: string) => Promise<void>
   goBack: (id: string) => Promise<void>
   goForward: (id: string) => Promise<void>
   reload: (id: string) => Promise<void>
+  navigateGroup: (id: PaneGroupId, url: string) => Promise<void>
   moveView: (id: string, x: number, y: number) => void
   refresh: () => Promise<void>
 } {
-  const [views, setViews] = useState<ViewState[]>([])
+  const [workspace, setWorkspace] = useState<WorkspaceState>(EMPTY_WORKSPACE)
+  const [activeProjectId, setActiveProjectId] = useState<ProjectId | null>(null)
+  const [activeGroupId, setActiveGroupId] = useState<PaneGroupId | null>(null)
   const [viewPositions, setViewPositions] = useState<ViewPositions>({})
+  const requestedProjectIdRef = useRef<ProjectId | null>(null)
 
-  const applyViews = useCallback((nextViews: ViewState[]) => {
-    setViews(nextViews)
-    setViewPositions((current) => reconcileViewPositions(nextViews, current))
-  }, [])
+  const applyWorkspace = useCallback(
+    (nextWorkspace: WorkspaceState, preferredProjectId?: ProjectId | null) => {
+      const requestedProjectId =
+        preferredProjectId ?? requestedProjectIdRef.current ?? activeProjectId
+      const nextProjectId =
+        requestedProjectId &&
+        nextWorkspace.projects.some((project) => project.id === requestedProjectId)
+          ? requestedProjectId
+          : (nextWorkspace.projects[0]?.id ?? null)
+
+      setWorkspace(nextWorkspace)
+      setViewPositions((current) => reconcileViewPositions(nextWorkspace.views, current))
+      setActiveProjectId(nextProjectId)
+      setActiveGroupId((current) => {
+        if (
+          current &&
+          nextWorkspace.groups.some(
+            (group) => group.id === current && group.projectId === nextProjectId
+          )
+        ) {
+          return current
+        }
+        return nextWorkspace.groups.find((group) => group.projectId === nextProjectId)?.id ?? null
+      })
+    },
+    [activeProjectId]
+  )
 
   const refresh = useCallback(async () => {
-    applyViews(await window.frame.listViews())
-  }, [applyViews])
+    applyWorkspace(await window.frame.listWorkspace())
+  }, [applyWorkspace])
+
+  const addProject = useCallback(async () => {
+    const nextWorkspace = await window.frame.addProject()
+    const created = nextWorkspace.projects.at(-1)
+    if (!created) return
+    requestedProjectIdRef.current = created.id
+    applyWorkspace(nextWorkspace, created.id)
+  }, [applyWorkspace])
+
+  const addGroup = useCallback(async () => {
+    if (!activeProjectId) return
+    const nextWorkspace = await window.frame.addGroup(activeProjectId)
+    applyWorkspace(nextWorkspace)
+    const projectGroups = nextWorkspace.groups.filter(
+      (group) => group.projectId === activeProjectId
+    )
+    const created = projectGroups.at(-1)
+    if (created) setActiveGroupId(created.id)
+  }, [activeProjectId, applyWorkspace])
 
   const addView = useCallback(
     async (presetId: string) => {
-      applyViews(await window.frame.addView(presetId))
+      if (!activeGroupId) return
+      applyWorkspace(await window.frame.addView(presetId, activeGroupId))
     },
-    [applyViews]
+    [activeGroupId, applyWorkspace]
   )
 
   const addCustomView = useCallback(
     async (width: number, height: number) => {
-      applyViews(await window.frame.addCustomView('Custom', width, height))
+      if (!activeGroupId) return
+      applyWorkspace(await window.frame.addCustomView('Custom', width, height, activeGroupId))
     },
-    [applyViews]
+    [activeGroupId, applyWorkspace]
   )
 
   const removeView = useCallback(
     async (id: string) => {
-      applyViews(await window.frame.removeView(id))
+      applyWorkspace(await window.frame.removeView(id))
     },
-    [applyViews]
+    [applyWorkspace]
   )
 
   const goBack = useCallback(
     async (id: string) => {
-      applyViews(await window.frame.goBack(id))
+      applyWorkspace(await window.frame.goBack(id))
     },
-    [applyViews]
+    [applyWorkspace]
   )
 
   const goForward = useCallback(
     async (id: string) => {
-      applyViews(await window.frame.goForward(id))
+      applyWorkspace(await window.frame.goForward(id))
     },
-    [applyViews]
+    [applyWorkspace]
   )
 
   const reload = useCallback(
     async (id: string) => {
-      applyViews(await window.frame.reload(id))
+      applyWorkspace(await window.frame.reload(id))
     },
-    [applyViews]
+    [applyWorkspace]
+  )
+
+  const navigateGroup = useCallback(
+    async (id: PaneGroupId, url: string) => {
+      applyWorkspace(await window.frame.navigateGroup(id, url))
+    },
+    [applyWorkspace]
   )
 
   const moveView = useCallback((id: string, x: number, y: number) => {
@@ -170,38 +244,76 @@ export function useViews(): {
     })
   }, [])
 
+  const selectProject = useCallback(
+    (id: ProjectId) => {
+      requestedProjectIdRef.current = id
+      setActiveProjectId(id)
+      setActiveGroupId((current) => {
+        if (
+          current &&
+          workspace.groups.some((group) => group.id === current && group.projectId === id)
+        ) {
+          return current
+        }
+        return workspace.groups.find((group) => group.projectId === id)?.id ?? null
+      })
+    },
+    [workspace.groups]
+  )
+
+  const selectGroup = useCallback((id: PaneGroupId) => {
+    setActiveGroupId(id)
+  }, [])
+
   useEffect(() => {
     let active = true
-    const syncViews = (): void => {
-      void window.frame.listViews().then((states) => {
-        if (active) applyViews(states)
+    const syncWorkspace = (): void => {
+      void window.frame.listWorkspace().then((nextWorkspace) => {
+        if (active) applyWorkspace(nextWorkspace)
       })
     }
 
-    void window.frame.listViews().then((states) => {
-      if (active) applyViews(states)
+    void window.frame.listWorkspace().then((nextWorkspace) => {
+      if (active) applyWorkspace(nextWorkspace)
     })
-    const offViewsChanged = window.frame.onViewsChanged(applyViews)
+    const offWorkspaceChanged = window.frame.onWorkspaceChanged(applyWorkspace)
+    const offViewsChanged = window.frame.onViewsChanged((views) => {
+      setWorkspace((current) => ({ ...current, views }))
+      setViewPositions((current) => reconcileViewPositions(views, current))
+    })
     const offNavigated = window.frame.onViewNavigated((state) => {
-      setViews((current) => mergeViewStateUpdate(current, state))
-      syncViews()
+      setWorkspace((current) => ({
+        ...current,
+        views: mergeViewStateUpdate(current.views, state)
+      }))
+      syncWorkspace()
     })
     return () => {
       active = false
+      offWorkspaceChanged()
       offViewsChanged()
       offNavigated()
     }
-  }, [applyViews])
+  }, [applyWorkspace])
 
   return {
-    views,
+    projects: workspace.projects,
+    groups: workspace.groups,
+    views: workspace.views,
+    activeProjectId,
+    activeGroupId,
+    selectProject,
+    selectGroup,
     viewPositions,
+    addProject,
+    addGroup,
     addView,
     addCustomView,
     removeView,
     goBack,
     goForward,
     reload,
+    navigateGroup,
     moveView,
     refresh
   }

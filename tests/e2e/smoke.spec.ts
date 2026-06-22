@@ -18,7 +18,11 @@ test.afterAll(async () => {
 })
 
 test('renderer boots with toolbar', async () => {
-  await expect(window.getByTestId('url-input')).toBeVisible()
+  await expect(window.getByTestId('project-tab')).toBeVisible()
+  await expect(window.getByTestId('group-tab')).toBeVisible()
+  await expect(window.getByTestId('add-project')).toBeVisible()
+  await expect(window.getByTestId('add-group')).toBeVisible()
+  await expect(window.getByTestId('add-view')).toBeVisible()
 })
 
 test('app name is frame', async () => {

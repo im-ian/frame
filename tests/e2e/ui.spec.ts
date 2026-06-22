@@ -119,11 +119,43 @@ async function visibleSlotBounds(index = 0): Promise<{
 }
 
 test('toolbar controls are present', async () => {
-  await expect(window.getByTestId('url-input')).toBeVisible()
+  await expect(window.getByTestId('project-tab')).toHaveCount(1)
+  await expect(window.getByTestId('project-tab').first()).toHaveText('Project 1')
+  await expect(window.getByTestId('group-tab')).toHaveCount(1)
+  await expect(window.getByTestId('group-tab').first()).toHaveText('Group 1')
+  await expect(window.getByTestId('add-project')).toBeVisible()
+  await expect(window.getByTestId('add-group')).toBeVisible()
   await expect(window.getByTestId('add-view')).toBeVisible()
-  await expect(window.getByTestId('mirror-toggle')).toBeVisible()
-  await expect(window.getByTestId('go')).toBeVisible()
+  await expect(window.getByTestId('url-input')).toHaveCount(0)
+  await expect(window.getByTestId('mirror-toggle')).toHaveCount(0)
   await expect(window.getByTestId('add-view-modal')).toHaveCount(0)
+})
+
+test('toolbar creates groups inside the current project', async () => {
+  await window.getByTestId('add-group').click()
+  await expect(window.getByTestId('group-tab')).toHaveCount(2)
+  await expect(window.getByTestId('group-tab').nth(1)).toHaveAttribute('aria-selected', 'true')
+
+  await addCustomView(390, 844)
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
+
+  await window.getByTestId('group-tab').first().click()
+  await expect(window.getByTestId('group-tab').first()).toHaveAttribute('aria-selected', 'true')
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
+  await expect(window.getByTestId('canvas-group')).toHaveCount(1)
+})
+
+test('toolbar creates and switches projects', async () => {
+  await addCustomView(390, 844)
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
+
+  await window.getByTestId('add-project').click()
+  await expect(window.getByTestId('project-tab')).toHaveCount(2)
+  await expect(window.getByTestId('project-tab').nth(1)).toHaveAttribute('aria-selected', 'true')
+  await expect(window.getByTestId('device-frame')).toHaveCount(0)
+
+  await window.getByTestId('project-tab').first().click()
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
 })
 
 test('add view modal supports presets and custom pixels', async () => {
@@ -172,7 +204,7 @@ test('add view modal keeps native panes behind the overlay', async () => {
       height: 1
     })
 
-  await window.getByRole('button', { name: 'Close add view modal' }).click()
+  await window.getByRole('button', { name: 'Close add pane modal' }).click()
   await expect.poll(() => nativeViewportBounds()).toEqual(visibleBounds)
 })
 
@@ -289,6 +321,30 @@ test('zoom controls scale the canvas and native pane bounds', async () => {
   expect(after.width).toBeLessThan(before.width)
   expect(after.height).toBeLessThan(before.height)
 
+  await expect.poll(() => nativeViewportBounds()).toEqual(await visibleSlotBounds())
+})
+
+test('command wheel over a native pane zooms the canvas', async () => {
+  await addCustomView(390, 844)
+  await expect(window.getByTestId('device-frame')).toHaveCount(1)
+  await expect(window.getByTestId('zoom-reset')).toHaveText('100%')
+
+  await app.evaluate(async ({ BaseWindow }) => {
+    const w = BaseWindow.getAllWindows()[0]
+    const first = w.contentView.children[1] as WebContentsView
+    await first.webContents.executeJavaScript(`
+      window.dispatchEvent(new WheelEvent('wheel', {
+        deltaY: -120,
+        clientX: 120,
+        clientY: 120,
+        metaKey: true,
+        bubbles: true,
+        cancelable: true
+      }));
+    `)
+  })
+
+  await expect(window.getByTestId('zoom-reset')).toHaveText('112%')
   await expect.poll(() => nativeViewportBounds()).toEqual(await visibleSlotBounds())
 })
 

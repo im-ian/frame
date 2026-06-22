@@ -8,7 +8,6 @@ let app: ElectronApplication
 let window: Page
 let server: Server
 let navSourceUrl = ''
-let navBlankUrl = ''
 
 const CLICK_PAGE = `data:text/html,${encodeURIComponent(
   `<title>ready</title>
@@ -47,7 +46,6 @@ test.beforeAll(async () => {
       const addr = server.address()
       const port = typeof addr === 'object' && addr ? addr.port : 0
       navSourceUrl = `http://127.0.0.1:${port}/source`
-      navBlankUrl = `http://127.0.0.1:${port}/blank`
       resolve()
     })
   })
@@ -59,9 +57,10 @@ test.beforeAll(async () => {
   window = await app.firstWindow()
   await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
   await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
-  await window.getByTestId('url-input').fill(CLICK_PAGE)
-  await window.getByTestId('go').click()
-  await window.getByTestId('mirror-toggle').locator('input').check()
+  await window.evaluate(async (url) => {
+    const group = (await window.frame.listGroups())[0]
+    await window.frame.navigateGroup(group.id, url)
+  }, CLICK_PAGE)
   await expect
     .poll(async () =>
       app.evaluate(async ({ BaseWindow }) => {
@@ -114,8 +113,10 @@ test('a click in the focused view is mirrored to the other view', async () => {
 })
 
 test('typing in the focused view is mirrored to the other view', async () => {
-  await window.getByTestId('url-input').fill(TEXT_PAGE)
-  await window.getByTestId('go').click()
+  await window.evaluate(async (url) => {
+    const group = (await window.frame.listGroups())[0]
+    await window.frame.navigateGroup(group.id, url)
+  }, TEXT_PAGE)
   await expect
     .poll(async () =>
       app.evaluate(async ({ BaseWindow }) => {
@@ -165,8 +166,10 @@ test('typing in the focused view is mirrored to the other view', async () => {
 })
 
 test('input value changes in the focused view are mirrored to the other view', async () => {
-  await window.getByTestId('url-input').fill(TEXT_PAGE)
-  await window.getByTestId('go').click()
+  await window.evaluate(async (url) => {
+    const group = (await window.frame.listGroups())[0]
+    await window.frame.navigateGroup(group.id, url)
+  }, TEXT_PAGE)
   await expect
     .poll(async () =>
       app.evaluate(async ({ BaseWindow }) => {
@@ -201,20 +204,11 @@ test('input value changes in the focused view are mirrored to the other view', a
     .toBe('mirror')
 })
 
-test('navigation from the focused view is mirrored even when the target layout differs', async () => {
-  await window.getByTestId('mirror-toggle').locator('input').uncheck()
-  await app.evaluate(
-    async ({ BaseWindow }, urls) => {
-      const w = BaseWindow.getAllWindows()[0]
-      const first = w.contentView.children[1] as WebContentsView
-      const second = w.contentView.children[2] as WebContentsView
-      await Promise.all([
-        first.webContents.loadURL(urls.source),
-        second.webContents.loadURL(urls.blank)
-      ])
-    },
-    { source: navSourceUrl, blank: navBlankUrl }
-  )
+test('navigation from the focused view is mirrored inside its group', async () => {
+  await window.evaluate(async (url) => {
+    const group = (await window.frame.listGroups())[0]
+    await window.frame.navigateGroup(group.id, url)
+  }, navSourceUrl)
 
   await expect
     .poll(async () =>
@@ -225,8 +219,7 @@ test('navigation from the focused view is mirrored even when the target layout d
         )
       })
     )
-    .toEqual(['nav-source', 'nav-blank'])
-  await window.getByTestId('mirror-toggle').locator('input').check()
+    .toEqual(['nav-source', 'nav-source'])
 
   await app.evaluate(async ({ BaseWindow }) => {
     const w = BaseWindow.getAllWindows()[0]
@@ -258,4 +251,59 @@ test('navigation from the focused view is mirrored even when the target layout d
       })
     )
     .toEqual(['nav-target', 'nav-target'])
+})
+
+test('mirror events stay inside their group', async () => {
+  await window.evaluate(async (url) => {
+    const project = (await window.frame.listProjects())[0]
+    const groups = await window.frame.listGroups()
+    const primaryGroupId = groups[0].id
+    const workspace = await window.frame.addGroup(project.id)
+    const secondaryGroupId = workspace.groups[workspace.groups.length - 1].id
+    await window.frame.addCustomView('Custom', 1440, 900, secondaryGroupId)
+    await window.frame.navigateGroup(primaryGroupId, url)
+    await window.frame.navigateGroup(secondaryGroupId, url)
+  }, CLICK_PAGE)
+
+  await expect
+    .poll(async () =>
+      app.evaluate(async ({ BaseWindow }) => {
+        const w = BaseWindow.getAllWindows()[0]
+        return (w.contentView.children.slice(1) as WebContentsView[]).map((child) =>
+          child.webContents.getTitle()
+        )
+      })
+    )
+    .toEqual(['ready', 'ready', 'ready'])
+
+  await app.evaluate(async ({ BaseWindow }) => {
+    const w = BaseWindow.getAllWindows()[0]
+    const first = w.contentView.children[1] as WebContentsView
+    first.webContents.focus()
+    first.webContents.sendInputEvent({
+      type: 'mouseDown',
+      x: 100,
+      y: 100,
+      button: 'left',
+      clickCount: 1
+    })
+    first.webContents.sendInputEvent({
+      type: 'mouseUp',
+      x: 100,
+      y: 100,
+      button: 'left',
+      clickCount: 1
+    })
+  })
+
+  await expect
+    .poll(async () =>
+      app.evaluate(async ({ BaseWindow }) => {
+        const w = BaseWindow.getAllWindows()[0]
+        return (w.contentView.children.slice(1) as WebContentsView[]).map((child) =>
+          child.webContents.getTitle()
+        )
+      })
+    )
+    .toEqual(['CLICKED', 'CLICKED', 'ready'])
 })

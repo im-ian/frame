@@ -18,8 +18,10 @@ test.beforeAll(async () => {
   window = await app.firstWindow()
   await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
   await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
-  await window.getByTestId('url-input').fill(TALL)
-  await window.getByTestId('go').click()
+  await window.evaluate(async (url) => {
+    const group = (await window.frame.listGroups())[0]
+    await window.frame.navigateGroup(group.id, url)
+  }, TALL)
 })
 
 test.afterAll(async () => {

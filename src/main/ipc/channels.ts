@@ -1,9 +1,15 @@
 export const CH = {
   ADD_VIEW: 'frame:add-view',
   ADD_CUSTOM_VIEW: 'frame:add-custom-view',
+  ADD_PROJECT: 'frame:add-project',
+  ADD_GROUP: 'frame:add-group',
+  LIST_PROJECTS: 'frame:list-projects',
+  LIST_GROUPS: 'frame:list-groups',
+  LIST_WORKSPACE: 'frame:list-workspace',
   REMOVE_VIEW: 'frame:remove-view',
   LIST_VIEWS: 'frame:list-views',
   NAVIGATE_ALL: 'frame:navigate-all',
+  NAVIGATE_GROUP: 'frame:navigate-group',
   GO_BACK: 'frame:go-back',
   GO_FORWARD: 'frame:go-forward',
   RELOAD: 'frame:reload',
@@ -12,7 +18,10 @@ export const CH = {
   SET_MIRROR: 'frame:set-mirror',
   SET_PRESET: 'frame:set-preset',
   VIEWS_CHANGED: 'frame:views-changed',
+  WORKSPACE_CHANGED: 'frame:workspace-changed',
   VIEW_NAVIGATED: 'frame:view-navigated',
   MIRROR: 'frame:mirror',
-  SCROLL: 'frame:scroll'
+  SCROLL: 'frame:scroll',
+  VIEWPORT_ZOOM_WHEEL: 'frame:viewport-zoom-wheel',
+  CANVAS_ZOOM_WHEEL: 'frame:canvas-zoom-wheel'
 } as const

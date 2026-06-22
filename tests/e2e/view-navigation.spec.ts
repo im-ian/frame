@@ -49,15 +49,21 @@ test.afterEach(async () => {
   })
 })
 
-test('device frame navigation buttons move only their viewport through history', async () => {
+test('device frame navigation buttons mirror inside their group', async () => {
   await window.evaluate(() => window.frame.addView('desktop-1440'))
   await window.evaluate(() => window.frame.addView('iphone-14'))
   await expect(window.getByTestId('device-frame')).toHaveCount(2)
 
   const firstPage = `${baseUrl}/first`
   const secondPage = `${baseUrl}/second`
-  await window.evaluate((url) => window.frame.navigateAll(url), firstPage)
-  await window.evaluate((url) => window.frame.navigateAll(url), secondPage)
+  await window.evaluate(async (url) => {
+    const group = (await window.frame.listGroups())[0]
+    await window.frame.navigateGroup(group.id, url)
+  }, firstPage)
+  await window.evaluate(async (url) => {
+    const group = (await window.frame.listGroups())[0]
+    await window.frame.navigateGroup(group.id, url)
+  }, secondPage)
   await expect.poll(viewportUrls).toEqual([secondPage, secondPage])
 
   const desktopBack = window.getByRole('button', {
@@ -65,7 +71,7 @@ test('device frame navigation buttons move only their viewport through history',
   })
   await expect(desktopBack).toBeEnabled()
   await desktopBack.click()
-  await expect.poll(viewportUrls).toEqual([firstPage, secondPage])
+  await expect.poll(viewportUrls).toEqual([firstPage, firstPage])
 
   const desktopForward = window.getByRole('button', {
     name: 'Go forward in Desktop 1440 viewport'

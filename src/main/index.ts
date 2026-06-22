@@ -8,6 +8,7 @@ import { SyncBus } from './sync/SyncBus'
 import { readWorkspace, writeWorkspace, type PersistedWorkspace } from './workspace/persistence'
 import { findPreset } from '../shared/presets'
 import { DEFAULT_START_URL } from '../shared/defaults'
+import type { ViewportZoomWheel } from '../shared/types'
 
 if (process.env.FRAME_USER_DATA_PATH) {
   app.setPath('userData', process.env.FRAME_USER_DATA_PATH)
@@ -24,7 +25,6 @@ let win: BaseWindow | null = null
 let uiView: WebContentsView | null = null
 let registry: ViewRegistry | null = null
 let syncBus: SyncBus | null = null
-let mirrorEnabled = false
 let restoringWorkspace = false
 
 function createWindow(): void {
@@ -56,8 +56,8 @@ function createWindow(): void {
   registry.setAddedListener((view) => syncBus?.bindWebContentsId(view.id, view.webContentsId))
   registry.setNavigationListener((state) => {
     uiView?.webContents.send(CH.VIEW_NAVIGATED, state)
-    syncBus?.handleNavigation(state.id, state.url, mirrorEnabled)
-    persistWorkspace()
+    syncBus?.handleNavigation(state.id, state.url)
+    workspaceChanged()
   })
 
   const activeRegistry = registry
@@ -68,6 +68,7 @@ function createWindow(): void {
     } catch (err) {
       console.error('workspace initialize failed', err)
     } finally {
+      uiView?.webContents.send(CH.WORKSPACE_CHANGED, activeRegistry.workspaceState())
       uiView?.webContents.send(CH.VIEWS_CHANGED, activeRegistry.states())
     }
   })
@@ -123,6 +124,12 @@ function persistWorkspace(): void {
   writeWorkspace(workspacePath(), registry.workspace())
 }
 
+function workspaceChanged(): void {
+  persistWorkspace()
+  if (!registry) return
+  uiView?.webContents.send(CH.WORKSPACE_CHANGED, registry.workspaceState())
+}
+
 async function initializeWorkspace(activeRegistry: ViewRegistry): Promise<void> {
   const saved = shouldPersistWorkspace() ? readWorkspace(workspacePath()) : null
   if (saved) {
@@ -140,14 +147,15 @@ async function initializeWorkspace(activeRegistry: ViewRegistry): Promise<void> 
 function restoreWorkspace(activeRegistry: ViewRegistry, workspace: PersistedWorkspace): void {
   restoringWorkspace = true
   const restores: Promise<void>[] = []
+  activeRegistry.resetWorkspace(workspace.projects, workspace.groups)
   for (const saved of workspace.views) {
-    const view = activeRegistry.add(saved.preset)
+    const view = activeRegistry.add(saved.preset, saved.groupId)
     view.setBounds({ x: 0, y: 60, width: view.width, height: view.height })
     restores.push(restoreViewUrl(view, saved.url))
   }
   void Promise.all(restores).finally(() => {
     restoringWorkspace = false
-    persistWorkspace()
+    workspaceChanged()
     uiView?.webContents.send(CH.VIEWS_CHANGED, activeRegistry.states())
   })
 }
@@ -165,28 +173,40 @@ async function restoreViewUrl(view: ChromiumView, savedUrl: string): Promise<voi
 }
 
 async function seedDefaultWorkspace(activeRegistry: ViewRegistry): Promise<void> {
+  const group = activeRegistry.groupStates()[0]
   for (const id of DEFAULT_VIEW_PRESETS) {
     const preset = findPreset(id)
     if (!preset) continue
-    activeRegistry.add(preset)
+    activeRegistry.add(preset, group.id)
   }
-  await activeRegistry.navigateAll(START_URL)
+  await activeRegistry.navigateGroup(group.id, START_URL)
 }
 
 app.whenReady().then(() => {
-  registerIpcHandlers(
-    () => registry,
-    () => mirrorEnabled,
-    (v) => {
-      mirrorEnabled = v
-    },
-    persistWorkspace
-  )
+  registerIpcHandlers(() => registry, workspaceChanged)
   ipcMain.on(CH.SCROLL, (event, s) => {
     syncBus?.handleScroll(event.sender.id, s)
   })
   ipcMain.on(CH.MIRROR, (event, ev) => {
-    syncBus?.handleMirror(event.sender.id, ev, mirrorEnabled)
+    syncBus?.handleMirror(event.sender.id, ev)
+  })
+  ipcMain.on(CH.VIEWPORT_ZOOM_WHEEL, (event, wheel: ViewportZoomWheel) => {
+    if (!registry || !uiView) return
+    if (
+      !Number.isFinite(wheel?.deltaY) ||
+      !Number.isFinite(wheel?.fx) ||
+      !Number.isFinite(wheel?.fy)
+    ) {
+      return
+    }
+    const source = registry.list().find((view) => view.webContentsId === event.sender.id)
+    if (!source) return
+    const bounds = source.bounds
+    uiView.webContents.send(CH.CANVAS_ZOOM_WHEEL, {
+      deltaY: wheel.deltaY,
+      x: bounds.x + bounds.width * Math.min(1, Math.max(0, wheel.fx)),
+      y: bounds.y + bounds.height * Math.min(1, Math.max(0, wheel.fy))
+    })
   })
   createWindow()
   app.on('activate', () => {

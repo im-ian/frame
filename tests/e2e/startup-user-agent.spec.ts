@@ -49,7 +49,10 @@ test.afterAll(async () => {
 test('mobile viewports send mobile UA on first navigation request', async () => {
   await window.evaluate(() => window.frame.addView('iphone-14'))
   await window.evaluate(() => window.frame.addView('ipad'))
-  await window.evaluate((url) => window.frame.navigateAll(url), baseUrl)
+  await window.evaluate(async (url) => {
+    const group = (await window.frame.listGroups())[0]
+    await window.frame.navigateGroup(group.id, url)
+  }, baseUrl)
 
   await expect.poll(() => requests.length, { timeout: 10_000 }).toBeGreaterThanOrEqual(2)
   const observedRequests = JSON.stringify(requests, null, 2)

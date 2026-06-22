@@ -36,8 +36,10 @@ test.afterAll(async () => {
 
 test('a cookie set in one view is visible to a newly added view', async () => {
   await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
-  await window.getByTestId('url-input').fill(`${baseUrl}/set`)
-  await window.getByTestId('go').click()
+  await window.evaluate(async (url) => {
+    const group = (await window.frame.listGroups())[0]
+    await window.frame.navigateGroup(group.id, url)
+  }, `${baseUrl}/set`)
 
   await expect
     .poll(async () =>
@@ -49,8 +51,10 @@ test('a cookie set in one view is visible to a newly added view', async () => {
     .toBe(true)
 
   await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
-  await window.getByTestId('url-input').fill(`${baseUrl}/`)
-  await window.getByTestId('go').click()
+  await window.evaluate(async (url) => {
+    const group = (await window.frame.listGroups())[0]
+    await window.frame.navigateGroup(group.id, url)
+  }, `${baseUrl}/`)
 
   await expect
     .poll(async () =>

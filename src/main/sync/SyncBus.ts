@@ -1,5 +1,6 @@
 import type { MirrorEvent, ScrollState, ViewId } from '../../shared/types'
 import type { ViewRegistry } from '../views/ViewRegistry'
+import type { ChromiumView } from '../views/ChromiumView'
 
 export class SyncBus {
   private readonly registry: ViewRegistry
@@ -19,35 +20,43 @@ export class SyncBus {
     const originId = this.wcIdToViewId.get(senderWcId)
     if (!originId) return
 
-    for (const view of this.registry.list()) {
+    for (const view of this.mirrorTargets(originId)) {
       if (view.id === originId) continue
       void view.applyScroll(s)
     }
   }
 
-  handleMirror(senderWcId: number, ev: MirrorEvent, mirrorOn: boolean): void {
-    if (!mirrorOn) return
+  handleMirror(senderWcId: number, ev: MirrorEvent): void {
     const originId = this.wcIdToViewId.get(senderWcId)
     if (!originId) return
     if (this.isSuppressed(originId)) return
 
-    for (const view of this.registry.list()) {
+    for (const view of this.mirrorTargets(originId)) {
       if (view.id === originId) continue
       this.suppressEchoFrom(view.id)
       view.injectMirror(ev)
     }
   }
 
-  handleNavigation(originId: ViewId, url: string, mirrorOn: boolean): void {
-    if (!mirrorOn || !url || url === 'about:blank') return
+  handleNavigation(originId: ViewId, url: string): void {
+    if (!url || url === 'about:blank') return
+    const groupId = this.registry.groupForView(originId)
+    if (!groupId) return
     if (this.registry.isNavigatingAll(url)) return
+    if (this.registry.isNavigatingGroup(groupId, url)) return
     if (this.isNavigationSuppressed(originId, url)) return
 
-    for (const view of this.registry.list()) {
+    for (const view of this.registry.listByGroup(groupId)) {
       if (view.id === originId || view.lastUrl === url) continue
       this.suppressNavigationFrom(view.id, url)
       void view.loadURL(url)
     }
+  }
+
+  private mirrorTargets(originId: ViewId): ChromiumView[] {
+    const groupId = this.registry.groupForView(originId)
+    if (!groupId) return []
+    return this.registry.listByGroup(groupId)
   }
 
   private suppressEchoFrom(id: ViewId): void {

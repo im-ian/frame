@@ -25,6 +25,28 @@ function viewportSize(): { width: number; height: number } {
   return { width: window.innerWidth, height: window.innerHeight }
 }
 
+function fraction(value: number, size: number): number {
+  if (!Number.isFinite(value) || size <= 0) return 0
+  return Math.min(1, Math.max(0, value / size))
+}
+
+window.addEventListener(
+  'wheel',
+  (e) => {
+    if (!(e.metaKey || e.ctrlKey)) return
+    if (!Number.isFinite(e.deltaY) || e.deltaY === 0) return
+    const size = viewportSize()
+    e.preventDefault()
+    e.stopPropagation()
+    ipcRenderer.send('frame:viewport-zoom-wheel', {
+      deltaY: e.deltaY,
+      fx: fraction(e.clientX, size.width),
+      fy: fraction(e.clientY, size.height)
+    })
+  },
+  { capture: true, passive: false }
+)
+
 for (const type of ['mousedown', 'mouseup'] as const) {
   window.addEventListener(
     type,

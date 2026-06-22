@@ -93,6 +93,10 @@ export class ChromiumView {
     return this.webContents.id
   }
 
+  get bounds(): Rect {
+    return this.currentBounds
+  }
+
   onNavigated(cb: (url: string) => void): void {
     this.onNavigatedCb = cb
   }

@@ -54,12 +54,31 @@ test('restores the last open viewports and URLs after restart', async () => {
   const firstRun = await launch()
   await firstRun.window.evaluate(() => window.frame.addView('ipad'))
   await firstRun.window.evaluate(() => window.frame.addView('desktop-1440'))
-  await firstRun.window.evaluate((url) => window.frame.navigateAll(url), `${baseUrl}/saved`)
+  const firstGroupId = await firstRun.window.evaluate(
+    async () => (await window.frame.listGroups())[0].id
+  )
+  const firstProjectId = await firstRun.window.evaluate(
+    async () => (await window.frame.listProjects())[0].id
+  )
+  await firstRun.window.evaluate(({ groupId, url }) => window.frame.navigateGroup(groupId, url), {
+    groupId: firstGroupId,
+    url: `${baseUrl}/saved`
+  })
   await expect
     .poll(() => firstRun.window.evaluate(() => window.frame.listViews()))
     .toMatchObject([
-      { presetId: 'ipad', url: `${baseUrl}/saved` },
-      { presetId: 'desktop-1440', url: `${baseUrl}/saved` }
+      {
+        projectId: firstProjectId,
+        groupId: firstGroupId,
+        presetId: 'ipad',
+        url: `${baseUrl}/saved`
+      },
+      {
+        projectId: firstProjectId,
+        groupId: firstGroupId,
+        presetId: 'desktop-1440',
+        url: `${baseUrl}/saved`
+      }
     ])
   await firstRun.app.close()
 
@@ -70,8 +89,26 @@ test('restores the last open viewports and URLs after restart', async () => {
   await expect
     .poll(() => secondRun.window.evaluate(() => window.frame.listViews()))
     .toMatchObject([
-      { presetId: 'ipad', url: `${baseUrl}/saved` },
-      { presetId: 'desktop-1440', url: `${baseUrl}/saved` }
+      {
+        projectId: firstProjectId,
+        groupId: firstGroupId,
+        presetId: 'ipad',
+        url: `${baseUrl}/saved`
+      },
+      {
+        projectId: firstProjectId,
+        groupId: firstGroupId,
+        presetId: 'desktop-1440',
+        url: `${baseUrl}/saved`
+      }
+    ])
+  await expect
+    .poll(() => secondRun.window.evaluate(() => window.frame.listProjects()))
+    .toMatchObject([{ id: firstProjectId, name: 'Project 1' }])
+  await expect
+    .poll(() => secondRun.window.evaluate(() => window.frame.listGroups()))
+    .toMatchObject([
+      { id: firstGroupId, projectId: firstProjectId, name: 'Group 1', url: `${baseUrl}/saved` }
     ])
   await secondRun.app.close()
 })

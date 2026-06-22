@@ -36,13 +36,19 @@ test.afterAll(async () => {
   })
 })
 
-test('navigateAll loads the same URL into every view', async () => {
+async function defaultGroupId(): Promise<string> {
+  return window.evaluate(async () => (await window.frame.listGroups())[0].id)
+}
+
+test('navigateGroup loads the same URL into every pane in the group', async () => {
   await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
   await window.evaluate(() => window.frame.addCustomView('Custom', 390, 844))
 
   const target = 'data:text/html,<title>nav</title><h1>navigated</h1>'
-  await window.getByTestId('url-input').fill(target)
-  await window.getByTestId('go').click()
+  await window.evaluate(({ groupId, url }) => window.frame.navigateGroup(groupId, url), {
+    groupId: await defaultGroupId(),
+    url: target
+  })
 
   await expect
     .poll(async () =>
@@ -56,11 +62,13 @@ test('navigateAll loads the same URL into every view', async () => {
     .toEqual([target, target])
 })
 
-test('url input accepts hosts without a scheme', async () => {
+test('group navigation accepts hosts without a scheme', async () => {
   await window.evaluate(() => window.frame.addCustomView('Custom', 1440, 900))
 
-  await window.getByTestId('url-input').fill(`${baseUrl}/short`)
-  await window.getByTestId('go').click()
+  await window.evaluate(({ groupId, url }) => window.frame.navigateGroup(groupId, url), {
+    groupId: await defaultGroupId(),
+    url: `${baseUrl}/short`
+  })
 
   await expect
     .poll(async () =>
@@ -72,7 +80,41 @@ test('url input accepts hosts without a scheme', async () => {
     )
     .toBe(`http://${baseUrl}/short`)
 
-  await expect(window.getByTestId('url-input')).toHaveValue(`http://${baseUrl}/short`)
+  await expect
+    .poll(async () =>
+      window.evaluate(async () => {
+        const group = (await window.frame.listGroups())[0]
+        return group.url
+      })
+    )
+    .toBe(`http://${baseUrl}/short`)
+})
+
+test('group address input shows the group URL and navigates on submit', async () => {
+  await window.evaluate(() => window.frame.addCustomView('Custom', 1024, 768))
+  const groupId = await defaultGroupId()
+  const initialUrl = 'data:text/html,<title>group-url</title><h1>group url</h1>'
+  await window.evaluate(({ id, url }) => window.frame.navigateGroup(id, url), {
+    id: groupId,
+    url: initialUrl
+  })
+
+  const input = window.getByTestId('group-url-input').first()
+  await expect(input).toHaveValue(initialUrl)
+
+  await input.fill(`${baseUrl}/from-input`)
+  await input.press('Enter')
+
+  await expect(input).toHaveValue(`http://${baseUrl}/from-input`)
+  await expect
+    .poll(async () =>
+      app.evaluate(async ({ BaseWindow }) => {
+        const w = BaseWindow.getAllWindows()[0]
+        const child = w.contentView.children[1] as WebContentsView
+        return child.webContents.getURL()
+      })
+    )
+    .toBe(`http://${baseUrl}/from-input`)
 })
 
 test('navigation events preserve viewport metadata when only URL changes', async () => {

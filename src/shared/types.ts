@@ -1,4 +1,6 @@
 export type ViewId = string
+export type ProjectId = string
+export type PaneGroupId = string
 
 export interface DevicePreset {
   id: string
@@ -12,6 +14,8 @@ export interface DevicePreset {
 
 export interface ViewState {
   id: ViewId
+  projectId: ProjectId
+  groupId: PaneGroupId
   presetId: string
   width: number
   height: number
@@ -21,6 +25,24 @@ export interface ViewState {
 }
 
 export type ViewStateUpdate = Pick<ViewState, 'id'> & Partial<Omit<ViewState, 'id'>>
+
+export interface ProjectState {
+  id: ProjectId
+  name: string
+}
+
+export interface PaneGroupState {
+  id: PaneGroupId
+  projectId: ProjectId
+  name: string
+  url: string
+}
+
+export interface WorkspaceState {
+  projects: ProjectState[]
+  groups: PaneGroupState[]
+  views: ViewState[]
+}
 
 export interface Rect {
   x: number
@@ -33,6 +55,18 @@ export interface ViewLayout {
   id: ViewId
   rect: Rect
   scale: number
+}
+
+export interface ViewportZoomWheel {
+  deltaY: number
+  fx: number
+  fy: number
+}
+
+export interface CanvasZoomWheel {
+  deltaY: number
+  x: number
+  y: number
 }
 
 export interface ScrollState {
