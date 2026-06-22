@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DEFAULT_PRESETS } from '../../../shared/presets'
 import { DEFAULT_START_URL } from '../../../shared/defaults'
 import { normalizeNavigationUrl } from '../../../shared/navigation'
@@ -31,6 +31,17 @@ export function Toolbar({
   const [url, setUrl] = useState(DEFAULT_START_URL)
   const [mirror, setMirror] = useState(false)
   const [addingView, setAddingView] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      void window.frame.setNativeViewsOccluded(false)
+    }
+  }, [])
+
+  const setAddViewModalOpen = (open: boolean): void => {
+    setAddingView(open)
+    void window.frame.setNativeViewsOccluded(open)
+  }
 
   const submitUrl = (): void => {
     const normalized = normalizeNavigationUrl(url)
@@ -66,7 +77,7 @@ export function Toolbar({
         <button
           className="btn btn--accent"
           data-testid="add-view"
-          onClick={() => setAddingView(true)}
+          onClick={() => setAddViewModalOpen(true)}
         >
           + View
         </button>
@@ -91,13 +102,13 @@ export function Toolbar({
         <AddViewModal
           onAddPresetView={(presetId) => {
             onAddPresetView(presetId)
-            setAddingView(false)
+            setAddViewModalOpen(false)
           }}
           onAddCustomView={(width, height) => {
             onAddCustomView(width, height)
-            setAddingView(false)
+            setAddViewModalOpen(false)
           }}
-          onClose={() => setAddingView(false)}
+          onClose={() => setAddViewModalOpen(false)}
         />
       )}
     </header>

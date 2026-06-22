@@ -91,6 +91,12 @@ export function registerIpcHandlers(
     for (const { id, rect } of rects) registry.get(id)?.setBounds(rect)
   })
 
+  ipcMain.handle(CH.SET_NATIVE_VIEWS_OCCLUDED, (_e, occluded: boolean) => {
+    const registry = getRegistry()
+    if (!registry) throw new Error('no active window')
+    registry.setNativeViewsOccluded(Boolean(occluded))
+  })
+
   ipcMain.handle(CH.SET_MIRROR, (_e, on: boolean) => {
     setMirror(on)
   })

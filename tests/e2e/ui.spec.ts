@@ -43,20 +43,17 @@ async function nativeViewportBounds(index = 0): Promise<{
   width: number
   height: number
 }> {
-  return app.evaluate(
-    async ({ BaseWindow }, childIndex) => {
-      const w = BaseWindow.getAllWindows()[0]
-      const view = w.contentView.children[childIndex + 1] as WebContentsView
-      const bounds = view.getBounds()
-      return {
-        x: bounds.x,
-        y: bounds.y,
-        width: bounds.width,
-        height: bounds.height
-      }
-    },
-    index
-  )
+  return app.evaluate(async ({ BaseWindow }, childIndex) => {
+    const w = BaseWindow.getAllWindows()[0]
+    const view = w.contentView.children[childIndex + 1] as WebContentsView
+    const bounds = view.getBounds()
+    return {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height
+    }
+  }, index)
 }
 
 test('toolbar controls are present', async () => {
@@ -87,12 +84,14 @@ test('add view modal keeps native panes behind the overlay', async () => {
   expect(visibleBounds.width).toBeGreaterThan(1)
 
   await openAddViewModal()
-  await expect.poll(() => nativeViewportBounds()).toEqual({
-    x: -10000,
-    y: -10000,
-    width: 1,
-    height: 1
-  })
+  await expect
+    .poll(() => nativeViewportBounds())
+    .toEqual({
+      x: -10000,
+      y: -10000,
+      width: 1,
+      height: 1
+    })
 
   await window.getByRole('button', { name: 'Close add view modal' }).click()
   await expect.poll(() => nativeViewportBounds()).toEqual(visibleBounds)

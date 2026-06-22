@@ -8,6 +8,7 @@ export const CH = {
   GO_FORWARD: 'frame:go-forward',
   RELOAD: 'frame:reload',
   SET_LAYOUT: 'frame:set-layout',
+  SET_NATIVE_VIEWS_OCCLUDED: 'frame:set-native-views-occluded',
   SET_MIRROR: 'frame:set-mirror',
   SET_PRESET: 'frame:set-preset',
   VIEWS_CHANGED: 'frame:views-changed',

@@ -14,6 +14,8 @@ const api = {
   reload: (id: ViewId): Promise<ViewState[]> => ipcRenderer.invoke('frame:reload', id),
   setLayout: (rects: Array<{ id: ViewId; rect: Rect }>): Promise<void> =>
     ipcRenderer.invoke('frame:set-layout', rects),
+  setNativeViewsOccluded: (occluded: boolean): Promise<void> =>
+    ipcRenderer.invoke('frame:set-native-views-occluded', occluded),
   setMirror: (on: boolean): Promise<void> => ipcRenderer.invoke('frame:set-mirror', on),
   setPreset: (id: ViewId, presetId: string): Promise<ViewState[]> =>
     ipcRenderer.invoke('frame:set-preset', id, presetId),

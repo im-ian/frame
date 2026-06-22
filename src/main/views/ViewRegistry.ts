@@ -72,6 +72,10 @@ export class ViewRegistry {
     await this.views.get(id)?.reload()
   }
 
+  setNativeViewsOccluded(occluded: boolean): void {
+    for (const view of this.list()) view.setOccluded(occluded)
+  }
+
   isNavigatingAll(url: string): boolean {
     return this.navigateAllDepth > 0 && this.navigateAllUrl === url
   }

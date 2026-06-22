@@ -6,6 +6,7 @@ import type { DevicePreset, MirrorEvent, Rect, ScrollState, ViewId } from '../..
 import { getFrameSession } from '../session/partition'
 
 const VIEWPORT_PRELOAD = join(__dirname, '../preload/viewport.js')
+const OCCLUDED_BOUNDS: Rect = { x: -10000, y: -10000, width: 1, height: 1 }
 
 export class ChromiumView {
   readonly id: ViewId = randomUUID()
@@ -16,12 +17,15 @@ export class ChromiumView {
   private attached = false
   private currentUrl = ''
   private currentPreset: DevicePreset
+  private currentBounds: Rect
+  private occluded = false
   private onNavigatedCb: ((url: string) => void) | null = null
 
   constructor(parent: View, preset: DevicePreset) {
     this.parent = parent
     this.currentPresetId = preset.id
     this.currentPreset = preset
+    this.currentBounds = { x: 0, y: 0, width: preset.width, height: preset.height }
     this.view = new WebContentsView({
       webPreferences: {
         session: getFrameSession(),
@@ -92,11 +96,23 @@ export class ChromiumView {
   }
 
   setBounds(rect: Rect): void {
+    this.currentBounds = rect
+    this.applyBounds()
+  }
+
+  setOccluded(occluded: boolean): void {
+    if (this.occluded === occluded) return
+    this.occluded = occluded
+    this.applyBounds()
+  }
+
+  private applyBounds(): void {
+    const rect = this.occluded ? OCCLUDED_BOUNDS : this.currentBounds
     this.view.setBounds({
       x: Math.round(rect.x),
       y: Math.round(rect.y),
-      width: Math.round(rect.width),
-      height: Math.round(rect.height)
+      width: Math.max(1, Math.round(rect.width)),
+      height: Math.max(1, Math.round(rect.height))
     })
   }
 
