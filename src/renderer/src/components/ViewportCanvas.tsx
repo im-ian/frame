@@ -1,6 +1,6 @@
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { Fragment, useRef, useEffect, useCallback, useState } from 'react'
 import type { ViewState } from '../../../shared/types'
-import { DeviceFrame } from './DeviceFrame'
+import { DeviceFrame, DeviceFrameDragGhost, DeviceFrameDropPlaceholder } from './DeviceFrame'
 
 interface Props {
   views: ViewState[]
@@ -8,11 +8,19 @@ interface Props {
   onReorder: (sourceId: string, targetId: string) => void
 }
 
+interface DragGhost {
+  id: string
+  x: number
+  y: number
+}
+
 export function ViewportCanvas({ views, onRemove, onReorder }: Props): React.JSX.Element {
   const slotRefs = useRef(new Map<string, HTMLDivElement>())
   const frameRef = useRef<number | null>(null)
   const canvasRef = useRef<HTMLElement>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null)
+  const [dragGhost, setDragGhost] = useState<DragGhost | null>(null)
 
   const reportLayout = useCallback(() => {
     if (frameRef.current != null) return
@@ -63,14 +71,44 @@ export function ViewportCanvas({ views, onRemove, onReorder }: Props): React.JSX
 
   useEffect(() => {
     if (!draggingId) return
-    const stopDragging = (): void => setDraggingId(null)
+    const moveGhost = (e: PointerEvent): void => {
+      setDragGhost((current) =>
+        current && current.id === draggingId ? { ...current, x: e.clientX, y: e.clientY } : current
+      )
+    }
+    const stopDragging = (): void => {
+      if (dropTargetId && dropTargetId !== draggingId) {
+        onReorder(draggingId, dropTargetId)
+      }
+      setDraggingId(null)
+      setDropTargetId(null)
+      setDragGhost(null)
+    }
+    window.addEventListener('pointermove', moveGhost)
     window.addEventListener('pointerup', stopDragging)
     window.addEventListener('pointercancel', stopDragging)
     return () => {
+      window.removeEventListener('pointermove', moveGhost)
       window.removeEventListener('pointerup', stopDragging)
       window.removeEventListener('pointercancel', stopDragging)
     }
-  }, [draggingId])
+  }, [draggingId, dropTargetId, onReorder])
+
+  useEffect(() => {
+    reportLayout()
+  }, [draggingId, dropTargetId, reportLayout])
+
+  const ghostView = dragGhost ? views.find((v) => v.id === dragGhost.id) : null
+  const draggedView = draggingId ? views.find((v) => v.id === draggingId) : null
+  const draggingIndex = draggingId ? views.findIndex((v) => v.id === draggingId) : -1
+  const dropTargetIndex = dropTargetId ? views.findIndex((v) => v.id === dropTargetId) : -1
+  const showDropPlaceholder = Boolean(
+    draggedView && draggingIndex >= 0 && dropTargetIndex >= 0 && draggingIndex !== dropTargetIndex
+  )
+  const placeholderAfterTarget =
+    showDropPlaceholder && draggingIndex >= 0 && dropTargetIndex >= 0
+      ? draggingIndex < dropTargetIndex
+      : false
 
   return (
     <section className="canvas" data-testid="canvas" ref={canvasRef}>
@@ -80,24 +118,40 @@ export function ViewportCanvas({ views, onRemove, onReorder }: Props): React.JSX
           <span>Pick a device and hit “+ View” to start.</span>
         </div>
       )}
-      {views.map((v) => (
-        <DeviceFrame
-          key={v.id}
-          view={v}
-          onRemove={onRemove}
-          dragging={draggingId === v.id}
-          onDragStart={(id) => setDraggingId(id)}
-          onDragEnd={() => setDraggingId(null)}
-          onDragEnterFrame={(targetId) => {
-            if (!draggingId) return
-            onReorder(draggingId, targetId)
-          }}
-          ref={(el) => {
-            if (el) slotRefs.current.set(v.id, el)
-            else slotRefs.current.delete(v.id)
-          }}
-        />
-      ))}
+      {views.map((v) => {
+        const insertPlaceholder = showDropPlaceholder && draggedView && v.id === dropTargetId
+        return (
+          <Fragment key={v.id}>
+            {insertPlaceholder && !placeholderAfterTarget && (
+              <DeviceFrameDropPlaceholder view={draggedView} />
+            )}
+            <DeviceFrame
+              view={v}
+              onRemove={onRemove}
+              dragging={draggingId === v.id}
+              onDragStart={(id, point) => {
+                setDraggingId(id)
+                setDropTargetId(null)
+                setDragGhost({ id, ...point })
+              }}
+              onDragEnterFrame={(targetId) => {
+                if (!draggingId) return
+                setDropTargetId(targetId === draggingId ? null : targetId)
+              }}
+              ref={(el) => {
+                if (el) slotRefs.current.set(v.id, el)
+                else slotRefs.current.delete(v.id)
+              }}
+            />
+            {insertPlaceholder && placeholderAfterTarget && (
+              <DeviceFrameDropPlaceholder view={draggedView} />
+            )}
+          </Fragment>
+        )
+      })}
+      {ghostView && dragGhost && (
+        <DeviceFrameDragGhost view={ghostView} x={dragGhost.x} y={dragGhost.y} />
+      )}
     </section>
   )
 }

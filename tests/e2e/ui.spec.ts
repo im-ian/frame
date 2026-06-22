@@ -35,12 +35,60 @@ test('close button removes a device frame', async () => {
   await window.getByTestId('preset-select').selectOption('iphone-14')
   await window.getByTestId('add-view').click()
 
-  await window.getByTestId('device-frame').hover()
+  await window.getByTestId('device-frame-drag-handle').hover()
   const close = window.getByRole('button', { name: 'Remove iPhone 14 viewport' })
   await expect(close).toHaveCSS('opacity', '1')
   await close.click()
 
   await expect(window.getByTestId('device-frame')).toHaveCount(0)
+})
+
+test('dragging a device frame shows a ghost preview', async () => {
+  await window.getByTestId('preset-select').selectOption('iphone-14')
+  await window.getByTestId('add-view').click()
+
+  const handle = await window.getByTestId('device-frame-drag-handle').boundingBox()
+  if (!handle) throw new Error('missing drag handle')
+
+  await window.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2)
+  await window.mouse.down()
+  await window.mouse.move(handle.x + handle.width / 2 + 24, handle.y + handle.height / 2 + 18)
+
+  const ghost = window.getByTestId('device-frame-drag-ghost')
+  await expect(ghost).toBeVisible()
+  await expect(ghost).toContainText('iPhone 14')
+  await expect(ghost).toContainText('390 × 844')
+
+  await window.mouse.up()
+  await expect(ghost).toHaveCount(0)
+})
+
+test('dragging over a device frame shows a drop placeholder', async () => {
+  await window.getByTestId('preset-select').selectOption('iphone-14')
+  await window.getByTestId('add-view').click()
+  await window.getByTestId('preset-select').selectOption('ipad')
+  await window.getByTestId('add-view').click()
+
+  const source = await window.getByTestId('device-frame-drag-handle').nth(1).boundingBox()
+  const target = await window.getByTestId('device-frame-drag-handle').first().boundingBox()
+  if (!source || !target) throw new Error('missing drag handles')
+
+  await window.mouse.move(source.x + source.width / 2, source.y + source.height / 2)
+  await window.mouse.down()
+  await window.mouse.move(target.x + target.width / 2, target.y + target.height / 2, {
+    steps: 8
+  })
+
+  const placeholder = window.getByTestId('device-frame-drop-placeholder')
+  await expect(placeholder).toBeVisible()
+
+  const placeholderBox = await placeholder.boundingBox()
+  const firstFrameBox = await window.getByTestId('device-frame').first().boundingBox()
+  if (!placeholderBox || !firstFrameBox) throw new Error('missing placeholder or frame box')
+  expect(placeholderBox.x).toBeLessThan(firstFrameBox.x)
+
+  await window.mouse.up()
+  await expect(placeholder).toHaveCount(0)
 })
 
 test('device frames can be dragged into a new order', async () => {
