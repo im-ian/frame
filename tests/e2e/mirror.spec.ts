@@ -13,6 +13,13 @@ const CLICK_PAGE = `data:text/html,${encodeURIComponent(
   </body>`
 )}`
 
+const TEXT_PAGE = `data:text/html,${encodeURIComponent(
+  `<title>text</title>
+  <body style="margin:0;padding:40px">
+    <input id="field" style="width:240px;height:40px;font-size:20px" />
+  </body>`
+)}`
+
 test.beforeAll(async () => {
   app = await electron.launch({
     args: [path.join(__dirname, '..', '..', 'out', 'main', 'index.js')],
@@ -71,4 +78,94 @@ test('a click in the focused view is mirrored to the other view', async () => {
       })
     )
     .toBe('CLICKED')
+})
+
+test('typing in the focused view is mirrored to the other view', async () => {
+  await window.getByTestId('url-input').fill(TEXT_PAGE)
+  await window.getByTestId('go').click()
+  await expect
+    .poll(async () =>
+      app.evaluate(async ({ BaseWindow }) => {
+        const w = BaseWindow.getAllWindows()[0]
+        return (w.contentView.children.slice(1) as WebContentsView[]).map((child) =>
+          child.webContents.getTitle()
+        )
+      })
+    )
+    .toEqual(['text', 'text'])
+
+  await app.evaluate(async ({ BaseWindow }) => {
+    const w = BaseWindow.getAllWindows()[0]
+    const first = w.contentView.children[1] as WebContentsView
+    first.webContents.focus()
+    first.webContents.sendInputEvent({
+      type: 'mouseDown',
+      x: 70,
+      y: 60,
+      button: 'left',
+      clickCount: 1
+    })
+    first.webContents.sendInputEvent({
+      type: 'mouseUp',
+      x: 70,
+      y: 60,
+      button: 'left',
+      clickCount: 1
+    })
+    first.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'H' })
+    first.webContents.sendInputEvent({ type: 'char', keyCode: 'h' })
+    first.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'H' })
+    first.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'I' })
+    first.webContents.sendInputEvent({ type: 'char', keyCode: 'i' })
+    first.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'I' })
+  })
+
+  await expect
+    .poll(async () =>
+      app.evaluate(async ({ BaseWindow }) => {
+        const w = BaseWindow.getAllWindows()[0]
+        const second = w.contentView.children[2] as WebContentsView
+        return second.webContents.executeJavaScript(
+          `document.querySelector('#field')?.value ?? ''`
+        )
+      })
+    )
+    .toBe('hi')
+})
+
+test('input value changes in the focused view are mirrored to the other view', async () => {
+  await window.getByTestId('url-input').fill(TEXT_PAGE)
+  await window.getByTestId('go').click()
+  await expect
+    .poll(async () =>
+      app.evaluate(async ({ BaseWindow }) => {
+        const w = BaseWindow.getAllWindows()[0]
+        return (w.contentView.children.slice(1) as WebContentsView[]).map((child) =>
+          child.webContents.getTitle()
+        )
+      })
+    )
+    .toEqual(['text', 'text'])
+
+  await app.evaluate(async ({ BaseWindow }) => {
+    const w = BaseWindow.getAllWindows()[0]
+    const first = w.contentView.children[1] as WebContentsView
+    first.webContents.focus()
+    await first.webContents.executeJavaScript(`
+      const field = document.querySelector('#field');
+      field.focus();
+      field.value = 'mirror';
+      field.dispatchEvent(new InputEvent('input', { bubbles: true, data: 'mirror' }));
+    `)
+  })
+
+  await expect
+    .poll(async () =>
+      app.evaluate(async ({ BaseWindow }) => {
+        const w = BaseWindow.getAllWindows()[0]
+        const second = w.contentView.children[2] as WebContentsView
+        return second.webContents.executeJavaScript(`document.querySelector('#field')?.value ?? ''`)
+      })
+    )
+    .toBe('mirror')
 })
