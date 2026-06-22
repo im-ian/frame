@@ -22,6 +22,36 @@ function isPositivePixelValue(value: string): boolean {
   return /^[1-9]\d*$/.test(value)
 }
 
+type FrameApiWithNativeOcclusion = typeof window.frame & {
+  setNativeViewsOccluded?: (occluded: boolean) => Promise<void>
+}
+
+const HIDDEN_NATIVE_VIEW_RECT = { x: -10000, y: -10000, width: 1, height: 1 }
+
+async function setNativePanesOccluded(occluded: boolean): Promise<void> {
+  const frame = window.frame as FrameApiWithNativeOcclusion
+  if (typeof frame.setNativeViewsOccluded === 'function') {
+    await frame.setNativeViewsOccluded(occluded)
+    return
+  }
+
+  const views = await frame.listViews()
+  const rects = views.map((view) => {
+    if (occluded) {
+      return { id: view.id, rect: HIDDEN_NATIVE_VIEW_RECT }
+    }
+    const slot = document.querySelector(`[data-view-id="${view.id}"] .device-frame__slot`)
+    const bounds = slot?.getBoundingClientRect()
+    return {
+      id: view.id,
+      rect: bounds
+        ? { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height }
+        : HIDDEN_NATIVE_VIEW_RECT
+    }
+  })
+  await frame.setLayout(rects)
+}
+
 export function Toolbar({
   onNavigate,
   onAddPresetView,
@@ -34,13 +64,18 @@ export function Toolbar({
 
   useEffect(() => {
     return () => {
-      void window.frame.setNativeViewsOccluded(false)
+      void setNativePanesOccluded(false)
     }
   }, [])
 
-  const setAddViewModalOpen = (open: boolean): void => {
-    setAddingView(open)
-    void window.frame.setNativeViewsOccluded(open)
+  const setAddViewModalOpen = async (open: boolean): Promise<void> => {
+    if (open) {
+      await setNativePanesOccluded(true)
+      setAddingView(true)
+      return
+    }
+    setAddingView(false)
+    await setNativePanesOccluded(false)
   }
 
   const submitUrl = (): void => {
@@ -77,7 +112,7 @@ export function Toolbar({
         <button
           className="btn btn--accent"
           data-testid="add-view"
-          onClick={() => setAddViewModalOpen(true)}
+          onClick={() => void setAddViewModalOpen(true)}
         >
           + View
         </button>
@@ -102,13 +137,13 @@ export function Toolbar({
         <AddViewModal
           onAddPresetView={(presetId) => {
             onAddPresetView(presetId)
-            setAddViewModalOpen(false)
+            void setAddViewModalOpen(false)
           }}
           onAddCustomView={(width, height) => {
             onAddCustomView(width, height)
-            setAddViewModalOpen(false)
+            void setAddViewModalOpen(false)
           }}
-          onClose={() => setAddViewModalOpen(false)}
+          onClose={() => void setAddViewModalOpen(false)}
         />
       )}
     </header>
