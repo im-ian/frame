@@ -96,7 +96,13 @@ test('navigation events preserve viewport metadata when only URL changes', async
       const uiView = w.contentView.children[0] as WebContentsView
       uiView.webContents.send('frame:view-navigated', payload)
     },
-    { id: state.id, url: 'https://example.com' }
+    {
+      id: state.id,
+      presetId: null,
+      width: null,
+      height: null,
+      url: 'https://example.com'
+    }
   )
 
   await expect(frame).toContainText('iPad')
